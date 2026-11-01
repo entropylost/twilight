@@ -48,6 +48,10 @@ function __wbg_get_imports() {
             const ret = arg0.canvas;
             return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
         },
+        __wbg_checked_04db83ac6810bc82: function(arg0) {
+            const ret = arg0.checked;
+            return ret;
+        },
         __wbg_clearRect_1eed255045515c55: function(arg0, arg1, arg2, arg3, arg4) {
             arg0.clearRect(arg1, arg2, arg3, arg4);
         },
@@ -269,13 +273,13 @@ function __wbg_get_imports() {
             return ret;
         },
         __wbindgen_cast_0000000000000001: function(arg0, arg1) {
-            // Cast intrinsic for `Closure(Closure { dtor_idx: 19, function: Function { arguments: [NamedExternref("MouseEvent")], shim_idx: 22, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
-            const ret = makeMutClosure(arg0, arg1, wasm.wasm_bindgen_fd2788f6af4b0914___closure__destroy___dyn_core_73622ca1b2019a5d___ops__function__FnMut__web_sys_e2eb4f1ac103a3b8___features__gen_MouseEvent__MouseEvent____Output_______, wasm_bindgen_fd2788f6af4b0914___convert__closures_____invoke___web_sys_e2eb4f1ac103a3b8___features__gen_MouseEvent__MouseEvent_____);
+            // Cast intrinsic for `Closure(Closure { dtor_idx: 1, function: Function { arguments: [NamedExternref("MouseEvent")], shim_idx: 2, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
+            const ret = makeMutClosure(arg0, arg1, wasm.wasm_bindgen_774e49e4e983094e___closure__destroy___dyn_core_398d9f9a82cd5e50___ops__function__FnMut__web_sys_224362ab8a012a05___features__gen_MouseEvent__MouseEvent____Output_______, wasm_bindgen_774e49e4e983094e___convert__closures_____invoke___web_sys_224362ab8a012a05___features__gen_MouseEvent__MouseEvent_____);
             return ret;
         },
         __wbindgen_cast_0000000000000002: function(arg0, arg1) {
-            // Cast intrinsic for `Closure(Closure { dtor_idx: 19, function: Function { arguments: [], shim_idx: 20, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
-            const ret = makeMutClosure(arg0, arg1, wasm.wasm_bindgen_fd2788f6af4b0914___closure__destroy___dyn_core_73622ca1b2019a5d___ops__function__FnMut__web_sys_e2eb4f1ac103a3b8___features__gen_MouseEvent__MouseEvent____Output_______, wasm_bindgen_fd2788f6af4b0914___convert__closures_____invoke______);
+            // Cast intrinsic for `Closure(Closure { dtor_idx: 1, function: Function { arguments: [], shim_idx: 4, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
+            const ret = makeMutClosure(arg0, arg1, wasm.wasm_bindgen_774e49e4e983094e___closure__destroy___dyn_core_398d9f9a82cd5e50___ops__function__FnMut__web_sys_224362ab8a012a05___features__gen_MouseEvent__MouseEvent____Output_______, wasm_bindgen_774e49e4e983094e___convert__closures_____invoke______);
             return ret;
         },
         __wbindgen_cast_0000000000000003: function(arg0, arg1) {
@@ -299,12 +303,12 @@ function __wbg_get_imports() {
     };
 }
 
-function wasm_bindgen_fd2788f6af4b0914___convert__closures_____invoke______(arg0, arg1) {
-    wasm.wasm_bindgen_fd2788f6af4b0914___convert__closures_____invoke______(arg0, arg1);
+function wasm_bindgen_774e49e4e983094e___convert__closures_____invoke______(arg0, arg1) {
+    wasm.wasm_bindgen_774e49e4e983094e___convert__closures_____invoke______(arg0, arg1);
 }
 
-function wasm_bindgen_fd2788f6af4b0914___convert__closures_____invoke___web_sys_e2eb4f1ac103a3b8___features__gen_MouseEvent__MouseEvent_____(arg0, arg1, arg2) {
-    wasm.wasm_bindgen_fd2788f6af4b0914___convert__closures_____invoke___web_sys_e2eb4f1ac103a3b8___features__gen_MouseEvent__MouseEvent_____(arg0, arg1, arg2);
+function wasm_bindgen_774e49e4e983094e___convert__closures_____invoke___web_sys_224362ab8a012a05___features__gen_MouseEvent__MouseEvent_____(arg0, arg1, arg2) {
+    wasm.wasm_bindgen_774e49e4e983094e___convert__closures_____invoke___web_sys_224362ab8a012a05___features__gen_MouseEvent__MouseEvent_____(arg0, arg1, arg2);
 }
 
 function addToExternrefTable0(obj) {
