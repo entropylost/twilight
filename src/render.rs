@@ -9,7 +9,7 @@ use crate::frustrum::{ConeFrustrum, Frustrum, LinearFrustrum, merge_even, merge_
 use crate::range2d;
 use crate::scene::{RayBundle, Scene};
 use crate::shape::LineSegment;
-use crate::transmission::{self, Transmission};
+use crate::transmission::{self, Constant, Transmission};
 
 macro_rules! transmissions {
     ($($name:ident),* $(,)?) => {
@@ -190,10 +190,11 @@ pub fn render<T: Transmission>(scene: &Scene, settings: RenderSettings) -> HashM
                     start: LineSegment::new(probe, probe),
                     end: frustrum.at(settings.frustrum_start),
                 };
+                let emission = scene.emission_within::<Constant>(frustrum, bundle);
                 let transmission = scene.trace_bundle(bundle);
 
                 let radiance = get_radiance_recursive(caches.entry(k).or_default(), frustrum, scene, settings);
-                total_radiance += radiance.value() * transmission;
+                total_radiance += radiance.value() * transmission + emission.value;
             }
         }
         image.insert(cell, total_radiance);
