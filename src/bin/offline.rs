@@ -1,52 +1,60 @@
 //! Renders the example scene to a PNG without a browser.
-//!
-//! Usage: offline [-o OUTPUT] [-t TRANSMISSION] [-f FRUSTRUM_START] [-s SCALE]
 
+use std::path::PathBuf;
 use std::process::exit;
 
+use clap::Parser;
+use clap::builder::{PossibleValuesParser, TypedValueParser};
 use image::{GrayImage, Luma};
-use twilight::render::{DEFAULT_FRUSTRUM_START, TransmissionKind};
+use twilight::render::{DEFAULT_FRUSTRUM_START, RenderSettings, TransmissionKind};
 use twilight::scene::Scene;
 
 const SIZE: u32 = 128;
 
-fn usage() -> ! {
-    let names = TransmissionKind::ALL
-        .iter()
-        .map(|kind| kind.name())
-        .collect::<Vec<_>>()
-        .join(", ");
-    eprintln!("Usage: offline [-o OUTPUT] [-t TRANSMISSION] [-f FRUSTRUM_START] [-s SCALE]");
-    eprintln!("  -o  output path (default: render.png)");
-    eprintln!("  -t  one of {names} (default: {})", TransmissionKind::default().name());
-    eprintln!("  -f  frustrum length (default: {DEFAULT_FRUSTRUM_START})");
-    eprintln!("  -s  pixels per cell (default: 1)");
-    exit(1);
+#[derive(Parser)]
+#[command(about = "Renders the example scene to a PNG without a browser")]
+struct Args {
+    /// Output path
+    #[arg(short, long, default_value = "render.png")]
+    output: PathBuf,
+
+    /// Transmission model
+    #[arg(
+        short,
+        long,
+        default_value = TransmissionKind::default().name(),
+        value_parser = PossibleValuesParser::new(TransmissionKind::ALL.iter().map(|kind| kind.name()))
+            .map(|name| name.parse::<TransmissionKind>().unwrap()),
+    )]
+    transmission: TransmissionKind,
+
+    /// Frustrum length
+    #[arg(short, long, default_value_t = DEFAULT_FRUSTRUM_START)]
+    frustrum_start: f32,
+
+    /// Skip the linear frustrum when merging odd frustrums
+    #[arg(short = 'l', long)]
+    skip_linear: bool,
+
+    /// Pixels per cell
+    #[arg(short, long, default_value_t = 1)]
+    scale: u32,
 }
 
 fn main() {
-    let mut output = "render.png".to_string();
-    let mut transmission = TransmissionKind::default();
-    let mut frustrum_start = DEFAULT_FRUSTRUM_START;
-    let mut scale = 1;
+    let Args {
+        output,
+        transmission,
+        frustrum_start,
+        skip_linear,
+        scale,
+    } = Args::parse();
 
-    let mut args = std::env::args().skip(1);
-    while let Some(flag) = args.next() {
-        let Some(value) = args.next() else { usage() };
-        match flag.as_str() {
-            "-o" => output = value,
-            "-t" => {
-                transmission = value.parse().unwrap_or_else(|err| {
-                    eprintln!("{err}");
-                    usage()
-                })
-            }
-            "-f" => frustrum_start = value.parse().unwrap_or_else(|_| usage()),
-            "-s" => scale = value.parse().unwrap_or_else(|_| usage()),
-            _ => usage(),
-        }
-    }
-    let radiance = transmission.render(&Scene::example(), frustrum_start);
+    let settings = RenderSettings {
+        frustrum_start,
+        skip_linear,
+    };
+    let radiance = transmission.render(&Scene::example(), settings);
 
     let image = GrayImage::from_fn(SIZE * scale, SIZE * scale, |x, y| {
         let cell = glam::UVec2::new(x / scale, y / scale).as_ivec2();
@@ -54,8 +62,8 @@ fn main() {
         Luma([(value.clamp(0.0, 1.0) * 255.0).round() as u8])
     });
     image.save(&output).unwrap_or_else(|err| {
-        eprintln!("Failed to write {output}: {err}");
+        eprintln!("Failed to write {}: {err}", output.display());
         exit(1);
     });
-    println!("Wrote {output}");
+    println!("Wrote {}", output.display());
 }

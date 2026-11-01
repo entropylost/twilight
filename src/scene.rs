@@ -1,6 +1,10 @@
 use glam::{Affine2, Vec2};
 
-use crate::shape::{LineSegment, Polygon};
+use crate::{
+    frustrum::Frustrum,
+    shape::{LineSegment, Polygon},
+    transmission::Transmission,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Emitter {
@@ -83,6 +87,13 @@ impl Scene {
                     emitter.position,
                 ))
         })
+    }
+    pub fn emission_within<T: Transmission>(&self, source: Frustrum, bundle: RayBundle) -> T {
+        let mut emission = T::default();
+        for emitter in self.visible_emitters_within(bundle) {
+            emission = emission + T::new(source, emitter.position) * emitter.brightness;
+        }
+        emission
     }
 }
 

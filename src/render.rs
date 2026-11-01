@@ -5,7 +5,7 @@ use std::str::FromStr;
 use glam::{Affine2, IVec2, Vec2};
 use log::debug;
 
-use crate::frustrum::{ConeFrustrum, Frustrum, merge_even, merge_odd};
+use crate::frustrum::{ConeFrustrum, Frustrum, LinearFrustrum, merge_even, merge_odd};
 use crate::range2d;
 use crate::scene::{RayBundle, Scene};
 use crate::shape::LineSegment;
@@ -27,9 +27,9 @@ macro_rules! transmissions {
                 }
             }
 
-            pub fn render(self, scene: &Scene, frustrum_start: f32) -> HashMap<IVec2, f32> {
+            pub fn render(self, scene: &Scene, settings: RenderSettings) -> HashMap<IVec2, f32> {
                 match self {
-                    $(Self::$name => render::<transmission::$name>(scene, frustrum_start)),*
+                    $(Self::$name => render::<transmission::$name>(scene, settings)),*
                 }
             }
         }
@@ -47,6 +47,7 @@ transmissions! {
     AveragedLinear,
 }
 
+#[allow(clippy::derivable_impls)]
 impl Default for TransmissionKind {
     fn default() -> Self {
         Self::QuadraticProjected
@@ -69,15 +70,26 @@ pub const DEFAULT_FRUSTRUM_START: f32 = 2.0;
 // Nudges the scene off the probe grid so that geometry never lies exactly on a frustrum boundary.
 const DISAMBIGUATION_OFFSET: Vec2 = Vec2::new(0.0013, 0.0017);
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct RenderSettings {
+    pub frustrum_start: f32,
+    pub skip_linear: bool,
+}
+
 fn get_radiance_recursive<T: Transmission>(
+    cache: &mut HashMap<Frustrum, T>,
     frustrum: Frustrum,
     scene: &Scene,
-    frustrum_start: f32,
-    cache: &mut HashMap<Frustrum, T>,
+    settings: RenderSettings,
 ) -> T {
     if let Some(&cached) = cache.get(&frustrum) {
         return cached;
     }
+
+    let RenderSettings {
+        frustrum_start,
+        skip_linear,
+    } = settings;
 
     if frustrum.size() > 128 {
         debug!("Frustrum too large: {:?}", frustrum);
@@ -105,20 +117,40 @@ fn get_radiance_recursive<T: Transmission>(
             start: projected_near,
             end: next_near,
         };
-        let mut emitted_radiance = T::default();
-        for emitter in scene.visible_emitters_within(bundle) {
-            emitted_radiance = emitted_radiance + T::new(frustrum, emitter.position) * emitter.brightness;
-        }
         let transmittance = scene.trace_bundle(bundle);
-        let next_radiance = get_radiance_recursive(f, scene, frustrum_start, cache);
-        (next_radiance.reproject(f, frustrum) * transmittance + emitted_radiance) * w
+        let next_radiance = get_radiance_recursive(cache, f, scene, settings);
+        (next_radiance.reproject(f, frustrum) * transmittance) * w
     };
-    let mut sum =
-        |merged: Vec<(Frustrum, f32)>| merged.into_iter().map(&mut contribution).reduce(|a, b| a + b).unwrap();
+    let mut sum = |merged: Vec<(Frustrum, f32)>, next_start: f32| {
+        let start = frustrum.at(frustrum_start);
+        let end = frustrum.at(next_start);
+        let bundle = RayBundle { start, end };
+        merged.into_iter().map(&mut contribution).reduce(|a, b| a + b).unwrap()
+            + scene.emission_within(frustrum, bundle)
+    };
     let result = if frustrum.parity() == 0 {
-        sum(merge_even(frustrum))
+        sum(merge_even(frustrum), frustrum_start * 2.0)
     } else {
-        sum(merge_odd(frustrum, false)) * 0.5 + sum(merge_odd(frustrum, true)) * 0.5
+        let near_start = frustrum_start * 2.0 - 1.0;
+        let far_start = frustrum_start * 2.0 + 1.0;
+        // If not using linear rays, also have to subtract the double-contribution between the two starts.
+        let overlap_radiance = if skip_linear {
+            let overlap = LinearFrustrum {
+                focus: frustrum.focus(),
+                size: frustrum.size(),
+                index: frustrum.dir().y,
+            };
+            let bundle = RayBundle {
+                start: overlap.at(near_start),
+                end: overlap.at(far_start),
+            };
+            scene.emission_within(frustrum, bundle)
+        } else {
+            T::default()
+        };
+        sum(merge_odd(frustrum, false, skip_linear), near_start) * 0.5
+            + overlap_radiance * -0.5
+            + sum(merge_odd(frustrum, true, skip_linear), far_start) * 0.5
     };
 
     cache.insert(frustrum, result);
@@ -126,7 +158,7 @@ fn get_radiance_recursive<T: Transmission>(
 }
 
 // Returns the total radiance arriving at each cell in [1, 128)^2.
-pub fn render<T: Transmission>(scene: &Scene, frustrum_start: f32) -> HashMap<IVec2, f32> {
+pub fn render<T: Transmission>(scene: &Scene, settings: RenderSettings) -> HashMap<IVec2, f32> {
     let scene = scene.transform(Affine2::from_translation(DISAMBIGUATION_OFFSET));
     let mut caches = HashMap::<_, HashMap<Frustrum, T>>::new();
 
@@ -156,10 +188,11 @@ pub fn render<T: Transmission>(scene: &Scene, frustrum_start: f32) -> HashMap<IV
                 });
                 let bundle = RayBundle {
                     start: LineSegment::new(probe, probe),
-                    end: frustrum.at(frustrum_start),
+                    end: frustrum.at(settings.frustrum_start),
                 };
                 let transmission = scene.trace_bundle(bundle);
-                let radiance = get_radiance_recursive(frustrum, scene, frustrum_start, caches.entry(k).or_default());
+
+                let radiance = get_radiance_recursive(caches.entry(k).or_default(), frustrum, scene, settings);
                 total_radiance += radiance.value() * transmission;
             }
         }

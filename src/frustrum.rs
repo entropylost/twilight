@@ -153,7 +153,7 @@ pub fn merge_even(frustrum: Frustrum) -> Vec<(Frustrum, f32)> {
         ],
     }
 }
-pub fn merge_odd(frustrum: Frustrum, far: bool) -> Vec<(Frustrum, f32)> {
+pub fn merge_odd(frustrum: Frustrum, far: bool, skip_linear: bool) -> Vec<(Frustrum, f32)> {
     let offset = if far { 1 } else { -1 };
     let offset_f = offset as f32;
     match frustrum {
@@ -165,7 +165,7 @@ pub fn merge_odd(frustrum: Frustrum, far: bool) -> Vec<(Frustrum, f32)> {
             }),
             1.0,
         )],
-        Frustrum::Cone(f) => vec![
+        Frustrum::Cone(f) => [
             (
                 Frustrum::Cone(ConeFrustrum {
                     focus: f.focus + f.lower_dir() * offset,
@@ -182,14 +182,16 @@ pub fn merge_odd(frustrum: Frustrum, far: bool) -> Vec<(Frustrum, f32)> {
                 }),
                 1.0,
             ),
-            (
-                Frustrum::Linear(LinearFrustrum {
-                    focus: f.focus.as_vec2() + f.dir() * offset as f32,
-                    size: f.size * 2,
-                    index: f.dir().y * 2.0,
-                }),
-                offset as f32,
-            ),
-        ],
+        ]
+        .into_iter()
+        .chain((!skip_linear).then_some((
+            Frustrum::Linear(LinearFrustrum {
+                focus: f.focus.as_vec2() + f.dir() * offset as f32,
+                size: f.size * 2,
+                index: f.dir().y * 2.0,
+            }),
+            offset as f32,
+        )))
+        .collect(),
     }
 }

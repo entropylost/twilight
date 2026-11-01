@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use glam::{Affine2, Vec2};
 use log::debug;
-use twilight::render::{DEFAULT_FRUSTRUM_START, TransmissionKind};
+use twilight::render::{DEFAULT_FRUSTRUM_START, RenderSettings, TransmissionKind};
 use twilight::scene::Scene;
 use twilight::shape::Rect;
 use wasm_bindgen::JsCast;
@@ -48,14 +48,17 @@ fn run() -> Option<()> {
         .unwrap()
         .dyn_into::<web_sys::HtmlInputElement>()
         .unwrap();
+    let skip_linear_input = document
+        .get_element_by_id("skip-linear")
+        .unwrap()
+        .dyn_into::<web_sys::HtmlInputElement>()
+        .unwrap();
 
     let ctx = DrawContext::new(ctx);
 
     let mut ctx = ctx.transform(Affine2::from_scale(Vec2::splat(8.0)));
 
     let mut scene = Scene::example();
-    let mut frustrum_start = DEFAULT_FRUSTRUM_START;
-
     anim_loop(move || {
         let window_width = window().unwrap().inner_width().unwrap().as_f64().unwrap() as u32;
         let window_height = window().unwrap().inner_height().unwrap().as_f64().unwrap() as u32;
@@ -70,12 +73,20 @@ fn run() -> Option<()> {
 
         ctx.clear();
 
-        if let Ok(length) = frustrum_length_input.value().parse::<f32>() {
-            frustrum_start = length;
-        }
+        let frustrum_start = frustrum_length_input
+            .value()
+            .parse::<f32>()
+            .unwrap_or(DEFAULT_FRUSTRUM_START);
+        let skip_linear = skip_linear_input.checked();
 
         let kind = TransmissionKind::ALL[selector.selected_index().max(0) as usize];
-        for (cell, radiance) in kind.render(&scene, frustrum_start) {
+        for (cell, radiance) in kind.render(
+            &scene,
+            RenderSettings {
+                frustrum_start,
+                skip_linear,
+            },
+        ) {
             ctx.rect(Rect::center_size(cell.as_vec2(), Vec2::splat(1.0)))
                 .fill(lumaa(radiance, 1.0));
         }
