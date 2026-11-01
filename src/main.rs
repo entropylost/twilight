@@ -85,6 +85,7 @@ fn run() -> Option<()> {
             RenderSettings {
                 frustrum_start,
                 skip_linear,
+                pretrace: false,
             },
         ) {
             ctx.rect(Rect::center_size(cell.as_vec2(), Vec2::splat(1.0)))

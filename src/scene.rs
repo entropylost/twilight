@@ -79,18 +79,23 @@ impl Scene {
             .map(|interval| interval[1] - interval[0])
             .sum()
     }
-    pub fn visible_emitters_within(&self, bundle: RayBundle) -> impl Iterator<Item = &Emitter> {
+    pub fn emitters_within(&self, area: &Polygon) -> impl Iterator<Item = &Emitter> {
+        self.emitters
+            .iter()
+            .filter(move |emitter| area.contains_one_sided(emitter.position))
+    }
+    pub fn visible_emitters_within(&self, area: &Polygon, bundle: RayBundle) -> impl Iterator<Item = &Emitter> {
         self.emitters.iter().filter(move |emitter| {
-            bundle.as_polygon().contains_one_sided(emitter.position)
+            area.contains_one_sided(emitter.position)
                 && self.trace(LineSegment::new(
                     bundle.at(bundle.offset_at(emitter.position).unwrap()).start,
                     emitter.position,
                 ))
         })
     }
-    pub fn emission_within<T: Transmission>(&self, source: Frustrum, bundle: RayBundle) -> T {
+    pub fn emission_within<T: Transmission>(&self, source: Frustrum, area: &Polygon, bundle: RayBundle) -> T {
         let mut emission = T::default();
-        for emitter in self.visible_emitters_within(bundle) {
+        for emitter in self.visible_emitters_within(area, bundle) {
             emission = emission + T::new(source, emitter.position) * emitter.brightness;
         }
         emission

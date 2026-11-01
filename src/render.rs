@@ -5,7 +5,7 @@ use std::str::FromStr;
 use glam::{Affine2, IVec2, Vec2};
 use log::debug;
 
-use crate::frustrum::{ConeFrustrum, Frustrum, LinearFrustrum, merge_even, merge_odd};
+use crate::frustrum::{ConeFrustrum, Frustrum, FrustrumType, LinearFrustrum, merge_even, merge_odd};
 use crate::range2d;
 use crate::scene::{RayBundle, Scene};
 use crate::shape::LineSegment;
@@ -74,6 +74,7 @@ const DISAMBIGUATION_OFFSET: Vec2 = Vec2::new(0.0013, 0.0017);
 pub struct RenderSettings {
     pub frustrum_start: f32,
     pub skip_linear: bool,
+    pub pretrace: bool,
 }
 
 fn get_radiance_recursive<T: Transmission>(
@@ -89,6 +90,7 @@ fn get_radiance_recursive<T: Transmission>(
     let RenderSettings {
         frustrum_start,
         skip_linear,
+        pretrace,
     } = settings;
 
     if frustrum.size() > 128 {
@@ -126,7 +128,7 @@ fn get_radiance_recursive<T: Transmission>(
         let end = frustrum.at(next_start);
         let bundle = RayBundle { start, end };
         merged.into_iter().map(&mut contribution).reduce(|a, b| a + b).unwrap()
-            + scene.emission_within(frustrum, bundle)
+            + scene.emission_within(frustrum, &bundle.as_polygon(), bundle)
     };
     let result = if frustrum.parity() == 0 {
         sum(merge_even(frustrum), frustrum_start * 2.0)
@@ -140,11 +142,11 @@ fn get_radiance_recursive<T: Transmission>(
                 size: frustrum.size(),
                 index: frustrum.dir().y,
             };
-            let bundle = RayBundle {
-                start: overlap.at(near_start),
-                end: overlap.at(far_start),
-            };
-            scene.emission_within(frustrum, bundle)
+            scene.emission_within(
+                frustrum,
+                &overlap.polygon(near_start, far_start),
+                overlap.bundle(frustrum_start, far_start),
+            )
         } else {
             T::default()
         };
@@ -190,7 +192,7 @@ pub fn render<T: Transmission>(scene: &Scene, settings: RenderSettings) -> HashM
                     start: LineSegment::new(probe, probe),
                     end: frustrum.at(settings.frustrum_start),
                 };
-                let emission = scene.emission_within::<Constant>(frustrum, bundle);
+                let emission = scene.emission_within::<Constant>(frustrum, &bundle.as_polygon(), bundle);
                 let transmission = scene.trace_bundle(bundle);
 
                 let radiance = get_radiance_recursive(caches.entry(k).or_default(), frustrum, scene, settings);

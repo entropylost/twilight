@@ -2,7 +2,7 @@ use std::ops::{Add, Mul};
 
 use glam::{Mat2, Vec2};
 
-use crate::frustrum::Frustrum;
+use crate::frustrum::{Frustrum, FrustrumType};
 
 pub trait Transmission: Copy + Add<Output = Self> + Mul<f32, Output = Self> + Default {
     fn value(self) -> f32;

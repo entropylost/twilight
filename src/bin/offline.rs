@@ -39,6 +39,9 @@ struct Args {
     /// Pixels per cell
     #[arg(short, long, default_value_t = 1)]
     scale: u32,
+
+    #[arg(short = 'p', long)]
+    pretrace: bool,
 }
 
 fn main() {
@@ -48,11 +51,13 @@ fn main() {
         frustrum_start,
         skip_linear,
         scale,
+        pretrace,
     } = Args::parse();
 
     let settings = RenderSettings {
         frustrum_start,
         skip_linear,
+        pretrace,
     };
     let radiance = transmission.render(&Scene::example(), settings);
 
