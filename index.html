@@ -5,14 +5,14 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<link rel="stylesheet" href="/twilight/style-b8755734229e996f.css" integrity="sha384-TMkr+MKD1FpA58AO+AkmVIKkxWbQB+4BehLEr4LZdaWvUe2RII5l0jtQgLwLfgKs"/>
 		<title>HRC Visualizations</title>
-	<link rel="modulepreload" href="/twilight/twilight-c0d122de2dae06ec.js" crossorigin="anonymous" integrity="sha384-y3AWgiB8bdUkYB4Pw7ablSwtbFg8YXBOmMDVKSrWePItolMJWKUeN/er1PQ/Lpei"><link rel="preload" href="/twilight/twilight-c0d122de2dae06ec_bg.wasm" crossorigin="anonymous" integrity="sha384-yFzEhZD+bOKDTo7Q2SYcnZcvWdcv/KmFihQRPD/1gc3601+QLPcmpFr5UJOUP9eu" as="fetch" type="application/wasm"></head>
+	<link rel="modulepreload" href="/twilight/twilight-f72a088725621aea.js" crossorigin="anonymous" integrity="sha384-QEXFCw6ukSFSCKKWL3L2pGAwFUgIHiyNd2FodSfIIadf7LJv2+l8Jkeq1zP2V5r/"><link rel="preload" href="/twilight/twilight-f72a088725621aea_bg.wasm" crossorigin="anonymous" integrity="sha384-yvFFJKVOiZkpxwEB86NYh6QPX9OD0/SIDpejSwv4C2Xewn3NXwJcLvukRORTyNA6" as="fetch" type="application/wasm"></head>
 	<body>
 		<canvas id="main"></canvas>
 		<div id="controls">
 			<label for="transmission">Reprojection mode:</label>
 			<select name="transmission" id="transmission"></select>
 			<br>
-			<label for="frustum-len">frustum length:</label>
+			<label for="frustum-len">Frustum length:</label>
 			<input type="number" name="frustum-len" id="frustum-len" value="2" step="0.1" min="1" max="4">
 			<br>
 			<input type="checkbox" name="skip-linear" id="skip-linear" checked>
@@ -23,8 +23,8 @@
 		</div>
 		
 <script type="module">
-import init, * as bindings from '/twilight/twilight-c0d122de2dae06ec.js';
-const wasm = await init({ module_or_path: '/twilight/twilight-c0d122de2dae06ec_bg.wasm' });
+import init, * as bindings from '/twilight/twilight-f72a088725621aea.js';
+const wasm = await init({ module_or_path: '/twilight/twilight-f72a088725621aea_bg.wasm' });
 
 
 window.wasmBindings = bindings;
