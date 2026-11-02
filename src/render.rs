@@ -194,8 +194,20 @@ pub fn render<T: Transmission>(scene: &Scene, settings: RenderSettings) -> HashM
                     start: LineSegment::new(probe, probe),
                     end: frustum.at(settings.frustum_start),
                 };
-                let emission = scene.emission_within::<Constant>(frustum, &bundle.as_polygon(), bundle);
-                let transmission = scene.trace_bundle(bundle);
+                let emission = scene.emission_within::<Constant>(
+                    frustum,
+                    &RayBundle {
+                        start: LineSegment::new(probe, probe),
+                        end: frustum.at(settings.frustum_start),
+                    }
+                    .as_polygon(),
+                    bundle,
+                );
+                let transmittance_start = if settings.pretrace { 1.0 } else { settings.frustum_start };
+                let transmission = scene.trace_bundle(RayBundle {
+                    start: LineSegment::new(probe, probe),
+                    end: frustum.at(transmittance_start),
+                });
 
                 let radiance = get_radiance_recursive(caches.entry(k).or_default(), frustum, scene, settings);
                 total_radiance += radiance.value() * transmission + emission.value;

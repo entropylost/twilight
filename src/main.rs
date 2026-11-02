@@ -86,14 +86,12 @@ fn run() -> Option<()> {
         let pretrace = pretrace_input.checked();
 
         let kind = TransmissionKind::ALL[selector.selected_index().max(0) as usize];
-        for (cell, radiance) in kind.render(
-            &scene,
-            RenderSettings {
-                frustum_start,
-                skip_linear,
-                pretrace,
-            },
-        ) {
+        let settings = RenderSettings {
+            frustum_start,
+            skip_linear,
+            pretrace,
+        };
+        for (cell, radiance) in kind.render(&scene, settings) {
             ctx.rect(Rect::center_size(cell.as_vec2(), Vec2::splat(1.0)))
                 .fill(lumaa(radiance, 1.0));
         }
