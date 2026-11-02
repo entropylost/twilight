@@ -211,6 +211,12 @@ function __wbg_get_imports() {
         __wbg_setTransform_96b561b274a594ca: function() { return handleError(function (arg0, arg1, arg2, arg3, arg4, arg5, arg6) {
             arg0.setTransform(arg1, arg2, arg3, arg4, arg5, arg6);
         }, arguments); },
+        __wbg_set_checked_4b2468680005fbf7: function(arg0, arg1) {
+            arg0.checked = arg1 !== 0;
+        },
+        __wbg_set_disabled_2c6ed6464228ed53: function(arg0, arg1) {
+            arg0.disabled = arg1 !== 0;
+        },
         __wbg_set_fillStyle_783d3f7489475421: function(arg0, arg1, arg2) {
             arg0.fillStyle = getStringFromWasm0(arg1, arg2);
         },
