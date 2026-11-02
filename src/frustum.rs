@@ -8,7 +8,7 @@ use crate::{
     shape::{LineSegment, Polygon},
 };
 
-pub trait FrustrumType {
+pub trait FrustumType {
     fn focus(&self) -> Vec2;
     fn size(&self) -> i32;
     fn dir(&self) -> Vec2;
@@ -31,57 +31,57 @@ pub trait FrustrumType {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Frustrum {
-    Linear(LinearFrustrum),
-    Cone(ConeFrustrum),
+pub enum Frustum {
+    Linear(LinearFrustum),
+    Cone(ConeFrustum),
 }
-impl FrustrumType for Frustrum {
+impl FrustumType for Frustum {
     fn focus(&self) -> Vec2 {
         match self {
-            Frustrum::Linear(f) => f.focus(),
-            Frustrum::Cone(f) => f.focus(),
+            Frustum::Linear(f) => f.focus(),
+            Frustum::Cone(f) => f.focus(),
         }
     }
     fn size(&self) -> i32 {
         match self {
-            Frustrum::Linear(f) => f.size(),
-            Frustrum::Cone(f) => f.size(),
+            Frustum::Linear(f) => f.size(),
+            Frustum::Cone(f) => f.size(),
         }
     }
     fn dir(&self) -> Vec2 {
         match self {
-            Frustrum::Linear(f) => f.dir(),
-            Frustrum::Cone(f) => f.dir(),
+            Frustum::Linear(f) => f.dir(),
+            Frustum::Cone(f) => f.dir(),
         }
     }
     fn ray_dir(&self, pos: Vec2) -> Vec2 {
         match self {
-            Frustrum::Linear(f) => f.ray_dir(pos),
-            Frustrum::Cone(f) => f.ray_dir(pos),
+            Frustum::Linear(f) => f.ray_dir(pos),
+            Frustum::Cone(f) => f.ray_dir(pos),
         }
     }
     fn at(&self, t: f32) -> LineSegment {
         match self {
-            Frustrum::Linear(f) => f.at(t),
-            Frustrum::Cone(f) => f.at(t),
+            Frustum::Linear(f) => f.at(t),
+            Frustum::Cone(f) => f.at(t),
         }
     }
     fn parity(&self) -> i32 {
         match self {
-            Frustrum::Linear(f) => f.parity(),
-            Frustrum::Cone(f) => f.parity(),
+            Frustum::Linear(f) => f.parity(),
+            Frustum::Cone(f) => f.parity(),
         }
     }
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct LinearFrustrum {
+pub struct LinearFrustum {
     // offset towards bottom
     pub focus: Vec2,
     pub size: i32,
     pub index: f32,
 }
-impl FrustrumType for LinearFrustrum {
+impl FrustumType for LinearFrustum {
     fn focus(&self) -> Vec2 {
         self.focus
     }
@@ -101,7 +101,7 @@ impl FrustrumType for LinearFrustrum {
         )
     }
 }
-impl LinearFrustrum {
+impl LinearFrustum {
     fn simplify(&self) -> (OrderedFloat<f32>, OrderedFloat<f32>, i32, OrderedFloat<f32>) {
         (
             OrderedFloat(self.focus.x),
@@ -111,25 +111,25 @@ impl LinearFrustrum {
         )
     }
 }
-impl PartialEq for LinearFrustrum {
+impl PartialEq for LinearFrustum {
     fn eq(&self, other: &Self) -> bool {
         self.simplify() == other.simplify()
     }
 }
-impl Eq for LinearFrustrum {}
-impl Hash for LinearFrustrum {
+impl Eq for LinearFrustum {}
+impl Hash for LinearFrustum {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.simplify().hash(state);
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ConeFrustrum {
+pub struct ConeFrustum {
     pub focus: IVec2,
     pub size: i32,
     pub index: i32,
 }
-impl ConeFrustrum {
+impl ConeFrustum {
     pub fn lower_dir(&self) -> IVec2 {
         IVec2::new(self.size, self.index)
     }
@@ -137,7 +137,7 @@ impl ConeFrustrum {
         IVec2::new(self.size, self.index + 1)
     }
 }
-impl FrustrumType for ConeFrustrum {
+impl FrustumType for ConeFrustum {
     fn focus(&self) -> Vec2 {
         self.focus.as_vec2()
     }
@@ -158,19 +158,19 @@ impl FrustrumType for ConeFrustrum {
     }
 }
 
-pub fn merge_even(frustrum: Frustrum) -> Vec<(Frustrum, f32)> {
-    match frustrum {
-        Frustrum::Linear(f) => vec![(
-            Frustrum::Linear(LinearFrustrum {
+pub fn merge_even(frustum: Frustum) -> Vec<(Frustum, f32)> {
+    match frustum {
+        Frustum::Linear(f) => vec![(
+            Frustum::Linear(LinearFrustum {
                 focus: f.focus,
                 size: f.size * 2,
                 index: f.index * 2.0,
             }),
             1.0,
         )],
-        Frustrum::Cone(f) => vec![
+        Frustum::Cone(f) => vec![
             (
-                Frustrum::Cone(ConeFrustrum {
+                Frustum::Cone(ConeFrustum {
                     focus: f.focus,
                     size: f.size * 2,
                     index: f.index * 2,
@@ -178,7 +178,7 @@ pub fn merge_even(frustrum: Frustrum) -> Vec<(Frustrum, f32)> {
                 1.0,
             ),
             (
-                Frustrum::Cone(ConeFrustrum {
+                Frustum::Cone(ConeFrustum {
                     focus: f.focus,
                     size: f.size * 2,
                     index: f.index * 2 + 1,
@@ -188,21 +188,21 @@ pub fn merge_even(frustrum: Frustrum) -> Vec<(Frustrum, f32)> {
         ],
     }
 }
-pub fn merge_odd(frustrum: Frustrum, far: bool, skip_linear: bool) -> Vec<(Frustrum, f32)> {
+pub fn merge_odd(frustum: Frustum, far: bool, skip_linear: bool) -> Vec<(Frustum, f32)> {
     let offset = if far { 1 } else { -1 };
     let offset_f = offset as f32;
-    match frustrum {
-        Frustrum::Linear(f) => vec![(
-            Frustrum::Linear(LinearFrustrum {
+    match frustum {
+        Frustum::Linear(f) => vec![(
+            Frustum::Linear(LinearFrustum {
                 focus: f.focus + f.dir() * offset_f,
                 size: f.size * 2,
                 index: f.index * 2.0,
             }),
             1.0,
         )],
-        Frustrum::Cone(f) => [
+        Frustum::Cone(f) => [
             (
-                Frustrum::Cone(ConeFrustrum {
+                Frustum::Cone(ConeFrustum {
                     focus: f.focus + f.lower_dir() * offset,
                     size: f.size * 2,
                     index: f.index * 2,
@@ -210,7 +210,7 @@ pub fn merge_odd(frustrum: Frustrum, far: bool, skip_linear: bool) -> Vec<(Frust
                 1.0,
             ),
             (
-                Frustrum::Cone(ConeFrustrum {
+                Frustum::Cone(ConeFrustum {
                     focus: f.focus + f.upper_dir() * offset,
                     size: f.size * 2,
                     index: f.index * 2 + 1,
@@ -220,7 +220,7 @@ pub fn merge_odd(frustrum: Frustrum, far: bool, skip_linear: bool) -> Vec<(Frust
         ]
         .into_iter()
         .chain((!skip_linear).then_some((
-            Frustrum::Linear(LinearFrustrum {
+            Frustum::Linear(LinearFrustum {
                 focus: f.focus.as_vec2() + f.dir() * offset as f32,
                 size: f.size * 2,
                 index: f.dir().y * 2.0,

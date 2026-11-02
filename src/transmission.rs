@@ -2,12 +2,12 @@ use std::ops::{Add, Mul};
 
 use glam::{Mat2, Vec2};
 
-use crate::frustrum::{Frustrum, FrustrumType};
+use crate::frustum::{Frustum, FrustumType};
 
 pub trait Transmission: Copy + Add<Output = Self> + Mul<f32, Output = Self> + Default {
     fn value(self) -> f32;
-    fn new(frustrum: Frustrum, emitter: Vec2) -> Self;
-    fn reproject(self, source: Frustrum, target: Frustrum) -> Self;
+    fn new(frustum: Frustum, emitter: Vec2) -> Self;
+    fn reproject(self, source: Frustum, target: Frustum) -> Self;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
@@ -18,12 +18,12 @@ impl Transmission for Constant1d {
     fn value(self) -> f32 {
         self.value
     }
-    fn new(frustrum: Frustrum, emitter: Vec2) -> Self {
+    fn new(frustum: Frustum, emitter: Vec2) -> Self {
         Self {
-            value: 1.0 / (emitter.x - frustrum.focus().x).abs(),
+            value: 1.0 / (emitter.x - frustum.focus().x).abs(),
         }
     }
-    fn reproject(self, _source: Frustrum, _target: Frustrum) -> Self {
+    fn reproject(self, _source: Frustum, _target: Frustum) -> Self {
         self
     }
 }
@@ -52,12 +52,12 @@ impl Transmission for Constant {
     fn value(self) -> f32 {
         self.value
     }
-    fn new(frustrum: Frustrum, emitter: Vec2) -> Self {
+    fn new(frustum: Frustum, emitter: Vec2) -> Self {
         Self {
-            value: 1.0 / (emitter - frustrum.focus()).length(),
+            value: 1.0 / (emitter - frustum.focus()).length(),
         }
     }
-    fn reproject(self, _source: Frustrum, _target: Frustrum) -> Self {
+    fn reproject(self, _source: Frustum, _target: Frustum) -> Self {
         self
     }
 }
@@ -81,7 +81,7 @@ impl Mul<f32> for Constant {
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Quadratic {
     pub value: f32,
-    // along frustrum direction; we don't need moments along perpendicular direction due to small cone size
+    // along frustum direction; we don't need moments along perpendicular direction due to small cone size
     // currently just using both derivatives at the focus point
     pub moments: [f32; 2],
 }
@@ -89,9 +89,9 @@ impl Transmission for Quadratic {
     fn value(self) -> f32 {
         self.value
     }
-    fn new(frustrum: Frustrum, emitter: Vec2) -> Self {
-        let focus = frustrum.focus();
-        let dir = frustrum.dir();
+    fn new(frustum: Frustum, emitter: Vec2) -> Self {
+        let focus = frustum.focus();
+        let dir = frustum.dir();
         let dist = (emitter - focus).dot(dir.normalize());
         Self {
             value: 1.0 / dist,
@@ -99,7 +99,7 @@ impl Transmission for Quadratic {
         }
     }
     // TODO: This doesn't rotate properly.
-    fn reproject(self, source: Frustrum, target: Frustrum) -> Self {
+    fn reproject(self, source: Frustum, target: Frustum) -> Self {
         let source_focus = source.focus();
         let target_focus = target.focus();
         let dist = (target_focus - source_focus).dot(source.dir().normalize());
@@ -139,8 +139,8 @@ impl Transmission for QuadraticProjected {
     fn value(self) -> f32 {
         self.value
     }
-    fn new(frustrum: Frustrum, emitter: Vec2) -> Self {
-        let focus = frustrum.focus();
+    fn new(frustum: Frustum, emitter: Vec2) -> Self {
+        let focus = frustum.focus();
         let dist = (emitter - focus).length();
         let projected_dist = (emitter - focus).x;
         let multiplier = projected_dist / dist;
@@ -152,7 +152,7 @@ impl Transmission for QuadraticProjected {
             ],
         }
     }
-    fn reproject(self, source: Frustrum, target: Frustrum) -> Self {
+    fn reproject(self, source: Frustum, target: Frustum) -> Self {
         let source_focus = source.focus();
         let target_focus = target.focus();
         let dist = (target_focus - source_focus).x;
@@ -191,8 +191,8 @@ impl Transmission for LinearProjected {
     fn value(self) -> f32 {
         self.value
     }
-    fn new(frustrum: Frustrum, emitter: Vec2) -> Self {
-        let focus = frustrum.focus();
+    fn new(frustum: Frustum, emitter: Vec2) -> Self {
+        let focus = frustum.focus();
         let dist = (emitter - focus).length();
         let projected_dist = (emitter - focus).x; // a
         let multiplier = projected_dist / dist;
@@ -203,7 +203,7 @@ impl Transmission for LinearProjected {
             moment: multiplier / (projected_dist * projected_dist),
         }
     }
-    fn reproject(self, source: Frustrum, target: Frustrum) -> Self {
+    fn reproject(self, source: Frustum, target: Frustum) -> Self {
         let source_focus = source.focus();
         let target_focus = target.focus();
         let dist = (target_focus - source_focus).x;
@@ -242,15 +242,15 @@ impl Transmission for Gradient {
     fn value(self) -> f32 {
         self.value
     }
-    fn new(frustrum: Frustrum, emitter: Vec2) -> Self {
-        let focus = frustrum.focus();
+    fn new(frustum: Frustum, emitter: Vec2) -> Self {
+        let focus = frustum.focus();
         let dist = (emitter - focus).length();
         Self {
             value: 1.0 / dist,
             gradient: (emitter - focus).normalize() * (1.0 / (dist * dist)),
         }
     }
-    fn reproject(self, source: Frustrum, target: Frustrum) -> Self {
+    fn reproject(self, source: Frustum, target: Frustum) -> Self {
         let source_focus = source.focus();
         let target_focus = target.focus();
         Self {
@@ -300,8 +300,8 @@ impl Transmission for Hessian {
     fn value(self) -> f32 {
         self.value
     }
-    fn new(frustrum: Frustrum, emitter: Vec2) -> Self {
-        let focus = frustrum.focus();
+    fn new(frustum: Frustum, emitter: Vec2) -> Self {
+        let focus = frustum.focus();
         let dist = (emitter - focus).length();
         let dir = (emitter - focus).normalize();
         let outer = Mat2::from_cols(dir * dir.x, dir * dir.y);
@@ -311,7 +311,7 @@ impl Transmission for Hessian {
             hessian: (outer * 3.0 - Mat2::IDENTITY) * (1.0 / (dist * dist * dist)),
         }
     }
-    fn reproject(self, source: Frustrum, target: Frustrum) -> Self {
+    fn reproject(self, source: Frustum, target: Frustum) -> Self {
         let source_focus = source.focus();
         let target_focus = target.focus();
         let delta = target_focus - source_focus;
@@ -355,13 +355,13 @@ impl Transmission for AveragedLinear {
         self.value
     }
     // least squares optimal between -c and c.
-    fn new(frustrum: Frustrum, emitter: Vec2) -> Self {
-        let focus = frustrum.focus();
+    fn new(frustum: Frustum, emitter: Vec2) -> Self {
+        let focus = frustum.focus();
         let dist = (emitter - focus).length();
         let projected_dist = (emitter - focus).x; // a
         let multiplier = projected_dist / dist;
 
-        let average_range = frustrum.size() as f32 * 0.5; // c
+        let average_range = frustum.size() as f32 * 0.5; // c
 
         let at = (average_range / projected_dist).atanh();
 
@@ -371,7 +371,7 @@ impl Transmission for AveragedLinear {
             slope: multiplier * 3.0 * (projected_dist * at - average_range) / average_range.powi(3),
         }
     }
-    fn reproject(self, source: Frustrum, target: Frustrum) -> Self {
+    fn reproject(self, source: Frustum, target: Frustum) -> Self {
         let source_focus = source.focus();
         let target_focus = target.focus();
         let dist = (target_focus - source_focus).x;

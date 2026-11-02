@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use glam::{Affine2, Vec2};
 use log::debug;
-use twilight::render::{DEFAULT_FRUSTRUM_START, RenderSettings, TransmissionKind};
+use twilight::render::{DEFAULT_FRUSTUM_START, RenderSettings, TransmissionKind};
 use twilight::scene::Scene;
 use twilight::shape::Rect;
 use wasm_bindgen::JsCast;
@@ -43,8 +43,8 @@ fn run() -> Option<()> {
         option.set_selected(kind == TransmissionKind::default());
         selector.add_with_html_option_element(&option).ok()?;
     }
-    let frustrum_length_input = document
-        .get_element_by_id("frustrum-len")
+    let frustum_length_input = document
+        .get_element_by_id("frustum-len")
         .unwrap()
         .dyn_into::<web_sys::HtmlInputElement>()
         .unwrap();
@@ -78,13 +78,13 @@ fn run() -> Option<()> {
 
         ctx.clear();
 
-        let frustrum_start = frustrum_length_input
+        let frustum_start = frustum_length_input
             .value()
             .parse::<f32>()
-            .unwrap_or(DEFAULT_FRUSTRUM_START);
+            .unwrap_or(DEFAULT_FRUSTUM_START);
         let skip_linear = skip_linear_input.checked();
-        pretrace_input.set_disabled(frustrum_start != 2.0);
-        if frustrum_start != 2.0 {
+        pretrace_input.set_disabled(frustum_start != 2.0);
+        if frustum_start != 2.0 {
             pretrace_input.set_checked(false);
         }
         let pretrace = pretrace_input.checked();
@@ -93,7 +93,7 @@ fn run() -> Option<()> {
         for (cell, radiance) in kind.render(
             &scene,
             RenderSettings {
-                frustrum_start,
+                frustum_start,
                 skip_linear,
                 pretrace,
             },

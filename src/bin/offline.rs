@@ -6,7 +6,7 @@ use std::process::exit;
 use clap::Parser;
 use clap::builder::{PossibleValuesParser, TypedValueParser};
 use image::{GrayImage, Luma};
-use twilight::render::{DEFAULT_FRUSTRUM_START, RenderSettings, TransmissionKind};
+use twilight::render::{DEFAULT_FRUSTUM_START, RenderSettings, TransmissionKind};
 use twilight::scene::Scene;
 
 const SIZE: u32 = 128;
@@ -28,11 +28,11 @@ struct Args {
     )]
     transmission: TransmissionKind,
 
-    /// Frustrum length
-    #[arg(short, long, default_value_t = DEFAULT_FRUSTRUM_START)]
-    frustrum_start: f32,
+    /// Frustum length
+    #[arg(short, long, default_value_t = DEFAULT_FRUSTUM_START)]
+    frustum_start: f32,
 
-    /// Skip the linear frustrum when merging odd frustrums
+    /// Skip the linear frustum when merging odd frustums
     #[arg(short = 'l', long)]
     skip_linear: bool,
 
@@ -48,14 +48,14 @@ fn main() {
     let Args {
         output,
         transmission,
-        frustrum_start,
+        frustum_start,
         skip_linear,
         scale,
         pretrace,
     } = Args::parse();
 
     let settings = RenderSettings {
-        frustrum_start,
+        frustum_start,
         skip_linear,
         pretrace,
     };
