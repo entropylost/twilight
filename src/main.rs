@@ -53,6 +53,11 @@ fn run() -> Option<()> {
         .unwrap()
         .dyn_into::<web_sys::HtmlInputElement>()
         .unwrap();
+    let pretrace_input = document
+        .get_element_by_id("pretrace")
+        .unwrap()
+        .dyn_into::<web_sys::HtmlInputElement>()
+        .unwrap();
 
     let ctx = DrawContext::new(ctx);
 
@@ -78,6 +83,11 @@ fn run() -> Option<()> {
             .parse::<f32>()
             .unwrap_or(DEFAULT_FRUSTRUM_START);
         let skip_linear = skip_linear_input.checked();
+        pretrace_input.set_disabled(frustrum_start != 2.0);
+        if frustrum_start != 2.0 {
+            pretrace_input.set_checked(false);
+        }
+        let pretrace = pretrace_input.checked();
 
         let kind = TransmissionKind::ALL[selector.selected_index().max(0) as usize];
         for (cell, radiance) in kind.render(
@@ -85,7 +95,7 @@ fn run() -> Option<()> {
             RenderSettings {
                 frustrum_start,
                 skip_linear,
-                pretrace: false,
+                pretrace,
             },
         ) {
             ctx.rect(Rect::center_size(cell.as_vec2(), Vec2::splat(1.0)))

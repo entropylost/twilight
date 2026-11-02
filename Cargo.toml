@@ -8,6 +8,8 @@ glam = { version = "0.32.0", features = ["serde"] }
 log = "0.4.29"
 ordered-float = "5.5.0"
 palette = "0.7.6"
+image = { version = "0.25.10", default-features = false, features = ["png"] }
+clap = { version = "4.6.7", features = ["derive"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1.7"
@@ -25,10 +27,6 @@ web-sys = { version = "0.3.85", features = [
     "HtmlInputElement",
     "CanvasRenderingContext2d",
 ] }
-
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-image = { version = "0.25.10", default-features = false, features = ["png"] }
-clap = { version = "4.6.7", features = ["derive"] }
 
 [workspace]
 members = ["unchecked_tests"]

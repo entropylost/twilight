@@ -97,18 +97,19 @@ fn get_radiance_recursive<T: Transmission>(
         debug!("Frustrum too large: {:?}", frustrum);
         return T::default();
     }
-    let frustrum_poly = frustrum.polygon(frustrum_start, 128.0 / frustrum.size() as f32);
     if scene
-        .emitters
-        .iter()
-        .all(|emitter| !frustrum_poly.contains_one_sided(emitter.position))
+        .emitters_within(&frustrum.polygon(frustrum_start, 128.0 / frustrum.size() as f32))
+        .count()
+        == 0
     {
         return T::default();
     }
 
-    let near = frustrum.at(frustrum_start);
+    let transmittance_start = if pretrace { 1.0 } else { frustrum_start };
+
     let mut contribution = |(f, w): (Frustrum, f32)| {
-        let next_near = f.at(frustrum_start);
+        let near = frustrum.at(transmittance_start);
+        let next_near = f.at(transmittance_start);
         let projected_near = LineSegment::new(
             near.project_along(next_near.start, frustrum.ray_dir(next_near.start))
                 .unwrap(),
@@ -124,11 +125,12 @@ fn get_radiance_recursive<T: Transmission>(
         (next_radiance.reproject(f, frustrum) * transmittance) * w
     };
     let mut sum = |merged: Vec<(Frustrum, f32)>, next_start: f32| {
-        let start = frustrum.at(frustrum_start);
-        let end = frustrum.at(next_start);
-        let bundle = RayBundle { start, end };
         merged.into_iter().map(&mut contribution).reduce(|a, b| a + b).unwrap()
-            + scene.emission_within(frustrum, &bundle.as_polygon(), bundle)
+            + scene.emission_within(
+                frustrum,
+                &frustrum.polygon(frustrum_start, next_start),
+                frustrum.bundle(transmittance_start, next_start),
+            )
     };
     let result = if frustrum.parity() == 0 {
         sum(merge_even(frustrum), frustrum_start * 2.0)
@@ -145,7 +147,7 @@ fn get_radiance_recursive<T: Transmission>(
             scene.emission_within(
                 frustrum,
                 &overlap.polygon(near_start, far_start),
-                overlap.bundle(frustrum_start, far_start),
+                overlap.bundle(transmittance_start, far_start),
             )
         } else {
             T::default()
