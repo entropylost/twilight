@@ -83,10 +83,6 @@ fn run() -> Option<()> {
             .parse::<f32>()
             .unwrap_or(DEFAULT_FRUSTUM_START);
         let skip_linear = skip_linear_input.checked();
-        pretrace_input.set_disabled(frustum_start != 2.0);
-        if frustum_start != 2.0 {
-            pretrace_input.set_checked(false);
-        }
         let pretrace = pretrace_input.checked();
 
         let kind = TransmissionKind::ALL[selector.selected_index().max(0) as usize];
