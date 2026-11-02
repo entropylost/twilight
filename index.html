@@ -15,10 +15,10 @@
 			<label for="frustrum-len">Frustrum length:</label>
 			<input type="number" name="frustrum-len" id="frustrum-len" value="2" step="0.1" min="1" max="4">
 			<br>
-			<input type="checkbox" name="skip-linear" id="skip-linear">
+			<input type="checkbox" name="skip-linear" id="skip-linear" checked>
 			<label for="skip-linear">Skip strips / B-type rays</label>
 			<br>
-			<input type="checkbox" name="pretrace" id="pretrace">
+			<input type="checkbox" name="pretrace" id="pretrace" checked>
 			<label for="pretrace">Pretrace transmittance</label>
 		</div>
 		<link data-trunk rel="rust" href="Cargo.toml" data-wasm-opt="z" data-bin="twilight">
