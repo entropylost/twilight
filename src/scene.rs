@@ -29,11 +29,11 @@ impl Scene {
             ])],
             emitters: vec![
                 Emitter {
-                    brightness: 2.0,
+                    brightness: 0.5,
                     position: Vec2::new(40.0, 65.0),
                 },
                 Emitter {
-                    brightness: 4.0,
+                    brightness: 1.0,
                     position: Vec2::new(58.6, 108.3),
                 },
             ],

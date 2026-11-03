@@ -120,6 +120,7 @@ fn run() -> Option<()> {
             merge_mode,
         };
         for (cell, radiance) in kind.render(&scene, settings) {
+            let radiance = radiance.powf(1.0 / 2.2);
             ctx.rect(Rect::center_size(cell.as_vec2(), Vec2::splat(1.0)))
                 .fill(lumaa(radiance, 1.0));
         }
