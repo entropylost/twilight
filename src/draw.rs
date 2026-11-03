@@ -72,8 +72,8 @@ impl Path<'_> {
 #[derive(Debug, Clone)]
 pub struct DrawContext {
     ctx: CanvasRenderingContext2d,
-    mouse: MouseState,
-    transform: Affine2,
+    pub mouse: MouseState,
+    pub transform: Affine2,
     active_point: Option<Vec2>,
 }
 impl DrawContext {

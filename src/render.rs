@@ -45,6 +45,7 @@ transmissions! {
     Gradient,
     Hessian,
     AveragedLinear,
+    Inverse2,
 }
 
 #[allow(clippy::derivable_impls)]

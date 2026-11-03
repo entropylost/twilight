@@ -60,8 +60,8 @@ impl MouseStateInner {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MouseButton {
     Left = 0,
-    Middle = 1,
-    Right = 2,
+    Right = 1,
+    Middle = 2,
     Back = 3,
     Forward = 4,
 }
@@ -78,6 +78,8 @@ pub fn register_input_handlers(el: Element) -> MouseState {
         move |event: MouseEvent| {
             *state.pos.lock().unwrap() = Vec2::new(event.offset_x() as f32, event.offset_y() as f32);
             state.apply_buttons(event.buttons());
+            event.prevent_default();
+            event.stop_propagation();
         }
     })
     .into_js_value();

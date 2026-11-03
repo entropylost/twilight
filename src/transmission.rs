@@ -1,3 +1,4 @@
+use std::f32::consts::FRAC_1_SQRT_2;
 use std::ops::{Add, Mul};
 
 use glam::{Mat2, Vec2};
@@ -396,6 +397,86 @@ impl Mul<f32> for AveragedLinear {
         Self {
             value: self.value * rhs,
             slope: self.slope * rhs,
+        }
+    }
+}
+
+// Moment HRC's far-part carrier: the value for two readers on the frustum's centre line, at column offsets
+// ±INVERSE2_RANGE * size / √2 from the focus (the Chebyshev nodes of ±INVERSE2_RANGE * size). Any other reader
+// projects onto the centre line and interpolates 1 / value linearly in the projected column, since the value falls
+// off about as 1 / distance. Sums and scales act on the samples, so they are exact; only reading elsewhere is
+// approximate.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct Inverse2 {
+    // the values at the forward and the backward sample
+    pub samples: [f32; 2],
+}
+// A frustum of size s is read at its parent's samples, at most INVERSE2_RANGE * s / (2√2) columns along the parent's
+// centre line from a parent focus 0 or s / 2 columns away, so up to s / 2 * (1 + INVERSE2_RANGE / √2) columns from
+// its own focus. INVERSE2_RANGE = 1 / (2 - 1 / √2) makes that exactly INVERSE2_RANGE * s, so reads stay within the
+// range (up to a few percent beyond it, since the child's centre line is not quite the parent's).
+const INVERSE2_RANGE: f32 = 1.0 / (2.0 - FRAC_1_SQRT_2);
+// samples are interpolated harmonically only when both are above this fraction of the larger
+const INVERSE2_SAMPLE_RATIO_MIN: f32 = 1e-12;
+impl Inverse2 {
+    // the samples' column offsets from the focus, along the centre line
+    fn sample_columns(frustum: Frustum) -> [f32; 2] {
+        let x = INVERSE2_RANGE * frustum.size() as f32 * FRAC_1_SQRT_2;
+        [x, -x]
+    }
+    fn sample_points(frustum: Frustum) -> [Vec2; 2] {
+        // dir's x component is the size, so dir / size is one column along the centre line
+        let step = frustum.dir() / frustum.size() as f32;
+        Self::sample_columns(frustum).map(|x| frustum.focus() + step * x)
+    }
+    // w is the forward sample's weight: 1 / value interpolated linearly, or the value itself when a sample is near zero
+    fn interpolate(self, w: f32) -> f32 {
+        let [f0, f1] = self.samples;
+        if f0.min(f1) > INVERSE2_SAMPLE_RATIO_MIN * f0.max(f1).max(1e-30) {
+            1.0 / (w / f0 + (1.0 - w) / f1)
+        } else {
+            w * f0 + (1.0 - w) * f1
+        }
+    }
+    // the value for a reader at pos, from its projection onto the centre line
+    fn read(self, frustum: Frustum, pos: Vec2) -> f32 {
+        let dir = frustum.dir();
+        // the projection's column offset from the focus
+        let x = (pos - frustum.focus()).dot(dir) / dir.length_squared() * dir.x;
+        let [x0, x1] = Self::sample_columns(frustum);
+        self.interpolate((x - x1) / (x0 - x1))
+    }
+}
+impl Transmission for Inverse2 {
+    // the focus is midway between the samples
+    fn value(self) -> f32 {
+        self.interpolate(0.5)
+    }
+    fn new(frustum: Frustum, emitter: Vec2) -> Self {
+        Self {
+            samples: Self::sample_points(frustum).map(|p| 1.0 / (emitter - p).length()),
+        }
+    }
+    // resampled at the target's sample points
+    fn reproject(self, source: Frustum, target: Frustum) -> Self {
+        Self {
+            samples: Self::sample_points(target).map(|p| self.read(source, p)),
+        }
+    }
+}
+impl Add for Inverse2 {
+    type Output = Self;
+    fn add(self, other: Self) -> Self {
+        Self {
+            samples: [self.samples[0] + other.samples[0], self.samples[1] + other.samples[1]],
+        }
+    }
+}
+impl Mul<f32> for Inverse2 {
+    type Output = Self;
+    fn mul(self, rhs: f32) -> Self {
+        Self {
+            samples: self.samples.map(|v| v * rhs),
         }
     }
 }

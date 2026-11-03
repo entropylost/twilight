@@ -27,10 +27,16 @@ impl Scene {
                 Vec2::new(63.5, 70.0),
                 Vec2::new(56.5, 80.0),
             ])],
-            emitters: vec![Emitter {
-                brightness: 6.0,
-                position: Vec2::new(40.0, 65.0),
-            }],
+            emitters: vec![
+                Emitter {
+                    brightness: 2.0,
+                    position: Vec2::new(40.0, 65.0),
+                },
+                Emitter {
+                    brightness: 4.0,
+                    position: Vec2::new(58.6, 108.3),
+                },
+            ],
         }
     }
     pub fn transform(&self, transform: Affine2) -> Self {
