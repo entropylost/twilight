@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use glam::{Affine2, Vec2};
 use log::debug;
-use twilight::render::{DEFAULT_FRUSTUM_START, RenderSettings, TransmissionKind};
+use twilight::render::{DEFAULT_FRUSTUM_START, MergeMode, RenderSettings, TransmissionKind};
 use twilight::scene::{Emitter, Scene};
 use twilight::shape::Rect;
 use wasm_bindgen::JsCast;
@@ -55,6 +55,20 @@ fn run() -> Option<()> {
         option.set_selected(kind == TransmissionKind::default());
         selector.add_with_html_option_element(&option).ok()?;
     }
+    let merge_mode_selector = document
+        .get_element_by_id("merge-mode")?
+        .dyn_into::<web_sys::HtmlSelectElement>()
+        .ok()?;
+    for &mode in MergeMode::ALL {
+        let option = document
+            .create_element("option")
+            .ok()?
+            .dyn_into::<web_sys::HtmlOptionElement>()
+            .ok()?;
+        option.set_text(mode.name());
+        option.set_selected(mode == MergeMode::default());
+        merge_mode_selector.add_with_html_option_element(&option).ok()?;
+    }
     let frustum_length_input = document
         .get_element_by_id("frustum-len")
         .unwrap()
@@ -96,12 +110,14 @@ fn run() -> Option<()> {
             .unwrap_or(DEFAULT_FRUSTUM_START);
         let skip_linear = skip_linear_input.checked();
         let pretrace = pretrace_input.checked();
+        let merge_mode = MergeMode::ALL[merge_mode_selector.selected_index().max(0) as usize];
 
         let kind = TransmissionKind::ALL[selector.selected_index().max(0) as usize];
         let settings = RenderSettings {
             frustum_start,
             skip_linear,
             pretrace,
+            merge_mode,
         };
         for (cell, radiance) in kind.render(&scene, settings) {
             ctx.rect(Rect::center_size(cell.as_vec2(), Vec2::splat(1.0)))

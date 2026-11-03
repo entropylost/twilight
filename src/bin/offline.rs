@@ -6,7 +6,7 @@ use std::process::exit;
 use clap::Parser;
 use clap::builder::{PossibleValuesParser, TypedValueParser};
 use image::{GrayImage, Luma};
-use twilight::render::{DEFAULT_FRUSTUM_START, RenderSettings, TransmissionKind};
+use twilight::render::{DEFAULT_FRUSTUM_START, MergeMode, RenderSettings, TransmissionKind};
 use twilight::scene::Scene;
 
 const SIZE: u32 = 128;
@@ -42,6 +42,16 @@ struct Args {
 
     #[arg(short = 'p', long)]
     pretrace: bool,
+
+    /// Which odd-frustum merges to combine
+    #[arg(
+        short,
+        long,
+        default_value = MergeMode::default().name(),
+        value_parser = PossibleValuesParser::new(MergeMode::ALL.iter().map(|mode| mode.name()))
+            .map(|name| name.parse::<MergeMode>().unwrap()),
+    )]
+    merge_mode: MergeMode,
 }
 
 fn main() {
@@ -52,12 +62,14 @@ fn main() {
         skip_linear,
         scale,
         pretrace,
+        merge_mode,
     } = Args::parse();
 
     let settings = RenderSettings {
         frustum_start,
         skip_linear,
         pretrace,
+        merge_mode,
     };
     let radiance = transmission.render(&Scene::example(), settings);
 

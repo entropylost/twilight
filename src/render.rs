@@ -71,11 +71,49 @@ pub const DEFAULT_FRUSTUM_START: f32 = 2.0;
 // Nudges the scene off the probe grid so that geometry never lies exactly on a frustum boundary.
 const DISAMBIGUATION_OFFSET: Vec2 = Vec2::new(0.0013, 0.0017);
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MergeMode {
+    Near,
+    Far,
+    Both,
+}
+
+impl MergeMode {
+    pub const ALL: &[Self] = &[Self::Near, Self::Far, Self::Both];
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Near => "Near",
+            Self::Far => "Far",
+            Self::Both => "Both",
+        }
+    }
+}
+
+#[allow(clippy::derivable_impls)]
+impl Default for MergeMode {
+    fn default() -> Self {
+        Self::Both
+    }
+}
+
+impl FromStr for MergeMode {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::ALL
+            .iter()
+            .copied()
+            .find(|mode| mode.name() == s)
+            .ok_or_else(|| format!("Unknown merge mode: {s}"))
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RenderSettings {
     pub frustum_start: f32,
     pub skip_linear: bool,
     pub pretrace: bool,
+    pub merge_mode: MergeMode,
 }
 
 fn get_radiance_recursive<T: Transmission>(
@@ -92,6 +130,7 @@ fn get_radiance_recursive<T: Transmission>(
         frustum_start,
         skip_linear,
         pretrace,
+        merge_mode,
     } = settings;
 
     if frustum.size() > 128 {
@@ -153,9 +192,15 @@ fn get_radiance_recursive<T: Transmission>(
         } else {
             T::default()
         };
-        sum(merge_odd(frustum, false, skip_linear), near_start) * 0.5
-            + overlap_radiance * -0.5
-            + sum(merge_odd(frustum, true, skip_linear), far_start) * 0.5
+        match merge_mode {
+            MergeMode::Both => {
+                sum(merge_odd(frustum, false, skip_linear), near_start) * 0.5
+                    + overlap_radiance * -0.5
+                    + sum(merge_odd(frustum, true, skip_linear), far_start) * 0.5
+            }
+            MergeMode::Near => sum(merge_odd(frustum, false, skip_linear), near_start),
+            MergeMode::Far => sum(merge_odd(frustum, true, skip_linear), far_start),
+        }
     };
 
     cache.insert(frustum, result);
