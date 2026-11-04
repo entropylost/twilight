@@ -10,11 +10,8 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen::prelude::Closure;
 use web_sys::window;
 
-use crate::draw::{DrawContext, lumaa};
-use crate::input::MouseButton;
-
-pub mod draw;
-pub mod input;
+use twilight::draw::{DrawContext, lumaa};
+use twilight::input::MouseButton;
 
 fn run() -> Option<()> {
     let document = window()?.document()?;
@@ -22,17 +19,6 @@ fn run() -> Option<()> {
     let canvas = document
         .get_element_by_id("main")?
         .dyn_into::<web_sys::HtmlCanvasElement>()
-        .ok()?;
-    canvas
-        .add_event_listener_with_callback(
-            "contextmenu",
-            Closure::<dyn FnMut(web_sys::Event)>::new(move |event: web_sys::Event| {
-                event.prevent_default();
-                event.stop_propagation();
-            })
-            .into_js_value()
-            .unchecked_ref(),
-        )
         .ok()?;
 
     let ctx = canvas

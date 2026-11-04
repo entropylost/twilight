@@ -1,7 +1,7 @@
+use crate::shape::Rect;
 use glam::{Affine2, IVec2, Vec2};
 use palette::luma::{Luma, Lumaa};
 use palette::{Srgb, Srgba};
-use twilight::shape::Rect;
 use web_sys::CanvasRenderingContext2d;
 
 use crate::input::{MouseButton, MouseState, register_input_handlers};
@@ -129,6 +129,9 @@ impl DrawContext {
             rect.size().y as f64,
         );
         Path { context: self }
+    }
+    pub fn pixel(&mut self, point: IVec2) -> Path<'_> {
+        self.rect(Rect::min_max(point.as_vec2(), point.as_vec2() + 1.0))
     }
 
     pub fn transform(mut self, transform: Affine2) -> Self {

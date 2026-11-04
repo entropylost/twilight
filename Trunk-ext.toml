@@ -1,0 +1,4 @@
+[build]
+target = "ext.html"
+html_output = "ext.html"
+public_url = "/twilight"

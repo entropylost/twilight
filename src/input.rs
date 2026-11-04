@@ -113,5 +113,20 @@ pub fn register_input_handlers(el: Element) -> MouseState {
     el.add_event_listener_with_callback("mouseenter", enter_closure.unchecked_ref())
         .unwrap();
 
+    /*
+       canvas
+       .add_event_listener_with_callback(
+           "contextmenu",
+           Closure::<dyn FnMut(web_sys::Event)>::new(move |event: web_sys::Event| {
+               event.prevent_default();
+               event.stop_propagation();
+           })
+           .into_js_value()
+           .unchecked_ref(),
+       )
+       .ok()?;
+
+    */
+
     state
 }
