@@ -163,7 +163,7 @@ fn noext_ratio() {
         pretrace: false,
         merge_mode: MergeMode::Both,
     };
-    for kind in [RadianceKind::AveragePosition, RadianceKind::Inverse2, RadianceKind::QuadraticProjected] {
+    for kind in [RadianceKind::AverageDepth, RadianceKind::Inverse2, RadianceKind::QuadraticProjected] {
         let image = kind.render(&scene, settings);
         let ratio = |cell: IVec2| {
             image.get(&cell).copied().unwrap_or(0.0) * (cell.as_vec2() - emitter.as_vec2() - 0.5).length()

@@ -1,4 +1,4 @@
-use std::f32::consts::FRAC_1_SQRT_2;
+use std::f32::consts::{FRAC_1_SQRT_2, SQRT_2};
 use std::ops::{Add, Mul};
 
 use glam::{Mat2, Vec2};
@@ -410,6 +410,11 @@ pub struct Inverse2 {
 const INVERSE2_RANGE: f32 = 1.0 / (2.0 - FRAC_1_SQRT_2);
 // samples are interpolated harmonically only when both are above this fraction of the larger
 const INVERSE2_SAMPLE_RATIO_MIN: f32 = 1e-12;
+// The far part starts a size ahead of the focus, at forward weight w = 1 / 2 + √2 / (2 * INVERSE2_RANGE) = √2. No
+// emitter is nearer, so extrapolated 1 / value may reach zero no earlier than there (nor nearer than as far behind the
+// backward sample). Steeper samples, e.g. from faces seen at a grazing angle, which fall off as 1 / distance², would
+// otherwise put a pole within the read range and give huge or negative values.
+const INVERSE2_POLE_MIN: f32 = SQRT_2;
 impl Inverse2 {
     // the samples' column offsets from the focus, along the centre line
     fn sample_columns(frustum: Frustum) -> [f32; 2] {
@@ -425,7 +430,15 @@ impl Inverse2 {
     fn interpolate(self, w: f32) -> f32 {
         let [f0, f1] = self.samples;
         if f0.min(f1) > INVERSE2_SAMPLE_RATIO_MIN * f0.max(f1).max(1e-30) {
-            1.0 / (w / f0 + (1.0 - w) / f1)
+            let reciprocal = w / f0 + (1.0 - w) / f1;
+            let reciprocal = if w > 1.0 {
+                reciprocal.max((INVERSE2_POLE_MIN - w) / (INVERSE2_POLE_MIN - 1.0) / f0)
+            } else if w < 0.0 {
+                reciprocal.max((INVERSE2_POLE_MIN - 1.0 + w) / (INVERSE2_POLE_MIN - 1.0) / f1)
+            } else {
+                reciprocal
+            };
+            1.0 / reciprocal
         } else {
             w * f0 + (1.0 - w) * f1
         }

@@ -202,12 +202,12 @@ pub fn get_extension<L: Radiance>(
             let side_pixel_emittance = pixel_scene.get(&side_pixel).copied().unwrap_or(0.0);
             Fluence {
                 transmittance: 1.0,
-                radiance: L::new_directional(f, next_pixel.as_vec2() + 0.5, ViewDir::Right)
+                radiance: L::new_directional(f, pixel.as_vec2() + 0.5 + Vec2::X * 0.5, ViewDir::Right)
                     * next_pixel_emittance
                     * 0.5
                     + L::new_directional(
                         f,
-                        side_pixel.as_vec2() + 0.5,
+                        pixel.as_vec2() + 0.5 + Vec2::Y * 0.5 * view_dir as i32 as f32,
                         if view_dir == ViewDirection::Up { ViewDir::Up } else { ViewDir::Down },
                     ) * side_pixel_emittance
                         * 0.5,

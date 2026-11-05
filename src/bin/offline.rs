@@ -9,7 +9,7 @@ use glam::{IVec2, Vec2};
 use image::{GrayImage, Luma};
 use twilight::extension::PixelScene;
 use twilight::radiance::*;
-use twilight::render::ext::render_ext;
+use twilight::render::ext::{RenderExtSettings, render_ext};
 use twilight::render::{DEFAULT_FRUSTUM_START, MergeMode, RadianceKind, RenderSettings};
 use twilight::scene::{Emitter, Scene};
 
@@ -41,7 +41,7 @@ struct Args {
     skip_linear: bool,
 
     /// Pixels per cell
-    #[arg(short, long, default_value_t = 1)]
+    #[arg(long, default_value_t = 1)]
     scale: u32,
 
     #[arg(short = 'p', long)]
@@ -49,6 +49,9 @@ struct Args {
 
     #[arg(short = 'e', long)]
     ext: bool,
+
+    #[arg(short, long)]
+    simplify_occlusion: bool,
 
     /// Which odd-frustum merges to combine
     #[arg(
@@ -62,7 +65,8 @@ struct Args {
 }
 
 fn main() {
-    let Args { output, radiance, frustum_start, skip_linear, scale, pretrace, ext, merge_mode } = Args::parse();
+    let Args { output, radiance, frustum_start, skip_linear, scale, pretrace, ext, simplify_occlusion, merge_mode } =
+        Args::parse();
 
     let radiance = if ext {
         let mut scene = PixelScene::new();
@@ -78,7 +82,7 @@ fn main() {
             scene.insert(IVec2::new(i, 60), 0.0);
         }
 
-        render_ext::<DirectionalPosition, Inverse2>(&scene)
+        render_ext::<DirectionalPosition, Inverse2>(&scene, RenderExtSettings { simplify_occlusion })
     } else {
         let settings = RenderSettings { frustum_start, skip_linear, pretrace, merge_mode };
         radiance.render(
