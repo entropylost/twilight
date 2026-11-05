@@ -63,14 +63,8 @@ impl LineExtension {
     pub fn extend(&self) -> [LineExtension; 2] {
         let half_delta = self.delta() / 2;
         [
-            LineExtension {
-                start: self.start,
-                end: (self.start + half_delta),
-            },
-            LineExtension {
-                start: (self.end - half_delta),
-                end: self.end,
-            },
+            LineExtension { start: self.start, end: (self.start + half_delta) },
+            LineExtension { start: (self.end - half_delta), end: self.end },
         ]
     }
 }
@@ -91,11 +85,7 @@ impl ExtensionType for ConeExtension {
         self.delta().y
     }
     fn as_frustum(&self) -> Frustum {
-        Frustum::Cone(ConeFrustum {
-            focus: self.start - self.delta(),
-            size: self.size(),
-            index: self.index(),
-        })
+        Frustum::Cone(ConeFrustum { focus: self.start - self.delta(), size: self.size(), index: self.index() })
     }
 }
 impl ConeExtension {
@@ -111,31 +101,16 @@ impl ConeExtension {
     fn extend_lines(&self) -> [LineExtension; 3] {
         let half_delta = self.delta() / 2;
         [
-            LineExtension {
-                start: self.start,
-                end: self.start + half_delta,
-            },
-            LineExtension {
-                start: self.end_bottom - half_delta,
-                end: self.end_bottom,
-            },
-            LineExtension {
-                start: self.end_top() - half_delta,
-                end: self.end_top(),
-            },
+            LineExtension { start: self.start, end: self.start + half_delta },
+            LineExtension { start: self.end_bottom - half_delta, end: self.end_bottom },
+            LineExtension { start: self.end_top() - half_delta, end: self.end_top() },
         ]
     }
     fn extend_cones(&self) -> [ConeExtension; 2] {
         let half_delta = self.delta() / 2;
         [
-            ConeExtension {
-                start: self.start,
-                end_bottom: self.start + half_delta,
-            },
-            ConeExtension {
-                start: self.end_bottom - half_delta,
-                end_bottom: self.end_bottom,
-            },
+            ConeExtension { start: self.start, end_bottom: self.start + half_delta },
+            ConeExtension { start: self.end_bottom - half_delta, end_bottom: self.end_bottom },
         ]
     }
     fn extend(&self) -> Vec<Extension> {
@@ -157,19 +132,13 @@ pub fn draw_extension(extension: Extension, weight: f32, pixels: &mut HashMap<IV
     {
         if extension.index() == 1 {
             draw_extension(
-                Extension::Line(LineExtension {
-                    start: ext.start + IVec2::Y,
-                    end: ext.end_bottom + IVec2::Y,
-                }),
+                Extension::Line(LineExtension { start: ext.start + IVec2::Y, end: ext.end_bottom + IVec2::Y }),
                 weight * 0.5,
                 pixels,
             );
         } else if extension.index() == -2 {
             draw_extension(
-                Extension::Line(LineExtension {
-                    start: ext.start - IVec2::Y,
-                    end: ext.end_bottom - IVec2::Y,
-                }),
+                Extension::Line(LineExtension { start: ext.start - IVec2::Y, end: ext.end_bottom - IVec2::Y }),
                 weight * 0.5,
                 pixels,
             );
@@ -206,6 +175,9 @@ pub fn get_extension<L: Radiance>(
     pixel_scene: &PixelScene,
     view_dir: ViewDirection,
 ) -> Fluence<L> {
+    if extension.size() <= 0 {
+        panic!("Extension size must be positive: {:?}", extension);
+    }
     if let Some(cached) = cache.get(&extension) {
         return *cached;
     }
@@ -214,11 +186,12 @@ pub fn get_extension<L: Radiance>(
     // figure out edge cases later.
     if extension.size() == 1 {
         let pixel = extension.start();
-        return if let Some(_value) = pixel_scene.get(&pixel) {
-            Fluence {
-                transmittance: 0.0,
-                radiance: L::default(),
-            }
+        return Fluence {
+            transmittance: 1.0,
+            radiance: L::new(f, pixel.as_vec2() + 0.5) * pixel_scene.get(&pixel).copied().unwrap_or(0.0),
+        };
+        /*if let Some(_value) = pixel_scene.get(&pixel) {
+            Fluence { transmittance: 1.0, radiance: L::default() }
         } else {
             // pixels are always seen on two sides by probes; so give half radiance for both sides.
             // could do something more complex, but may not be necessary.
@@ -231,15 +204,12 @@ pub fn get_extension<L: Radiance>(
                 radiance: L::new(f, next_pixel.as_vec2() + 0.5) * next_pixel_emittance * 0.5
                     + L::new(f, side_pixel.as_vec2() + 0.5) * side_pixel_emittance * 0.5,
             }
-        };
+        };*/
     }
 
     let mut get_fluence_reproj = |ext: Extension| {
         let fluence = get_extension(cache, ext, pixel_scene, view_dir);
-        Fluence {
-            transmittance: fluence.transmittance,
-            radiance: fluence.radiance.reproject(ext.as_frustum(), f),
-        }
+        Fluence { transmittance: fluence.transmittance, radiance: fluence.radiance.reproject(ext.as_frustum(), f) }
     };
 
     let result = match extension {

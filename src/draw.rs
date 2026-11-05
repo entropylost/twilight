@@ -79,12 +79,7 @@ pub struct DrawContext {
 impl DrawContext {
     pub fn new(ctx: CanvasRenderingContext2d) -> Self {
         let mouse = register_input_handlers(ctx.canvas().unwrap().into());
-        Self {
-            ctx,
-            mouse,
-            transform: Affine2::IDENTITY,
-            active_point: None,
-        }
+        Self { ctx, mouse, transform: Affine2::IDENTITY, active_point: None }
     }
     pub fn polyline(&mut self, points: &[Vec2]) -> Path<'_> {
         self.ctx.begin_path();
@@ -109,25 +104,12 @@ impl DrawContext {
     }
     pub fn circle(&mut self, center: Vec2, radius: f32) -> Path<'_> {
         self.ctx.begin_path();
-        self.ctx
-            .arc(
-                center.x as f64,
-                center.y as f64,
-                radius as f64,
-                0.0,
-                std::f64::consts::TAU,
-            )
-            .unwrap();
+        self.ctx.arc(center.x as f64, center.y as f64, radius as f64, 0.0, std::f64::consts::TAU).unwrap();
         Path { context: self }
     }
     pub fn rect(&mut self, rect: Rect) -> Path<'_> {
         self.ctx.begin_path();
-        self.ctx.rect(
-            rect.min.x as f64,
-            rect.min.y as f64,
-            rect.size().x as f64,
-            rect.size().y as f64,
-        );
+        self.ctx.rect(rect.min.x as f64, rect.min.y as f64, rect.size().x as f64, rect.size().y as f64);
         Path { context: self }
     }
     pub fn pixel(&mut self, point: IVec2) -> Path<'_> {
@@ -179,12 +161,12 @@ impl DrawContext {
             self.active_point = Some(self.transform.transform_point2(point.as_vec2()));
         }
     }
+    pub fn mouse_pos(&self) -> Vec2 {
+        self.transform.inverse().transform_point2(self.mouse.position())
+    }
 
     pub fn clear(&mut self) {
-        let size = Vec2::new(
-            self.ctx.canvas().unwrap().width() as f32,
-            self.ctx.canvas().unwrap().height() as f32,
-        );
+        let size = Vec2::new(self.ctx.canvas().unwrap().width() as f32, self.ctx.canvas().unwrap().height() as f32);
         let start = self.transform.inverse().transform_point2(Vec2::ZERO).as_dvec2();
         let size = self.transform.inverse().transform_vector2(size).as_dvec2();
         self.ctx.clear_rect(start.x, start.y, size.x, size.y);

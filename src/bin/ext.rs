@@ -4,8 +4,10 @@ use glam::{Affine2, IVec2, Vec2};
 use log::debug;
 use palette::WithAlpha;
 use twilight::{
-    draw::{DrawContext, rgb},
-    extension::{ConeExtension, Extension, ExtensionType, draw_extension},
+    draw::{DrawContext, lumaa, rgb},
+    extension::{ConeExtension, Extension, ExtensionType, PixelScene, ViewDirection, draw_extension, get_extension},
+    input::MouseButton,
+    radiance::AveragePosition,
     shape::Rect,
 };
 use wasm_bindgen::{JsCast, prelude::Closure};
@@ -14,21 +16,16 @@ use web_sys::window;
 fn run() -> Option<()> {
     let document = window()?.document()?;
 
-    let canvas = document
-        .get_element_by_id("main")?
-        .dyn_into::<web_sys::HtmlCanvasElement>()
-        .ok()?;
+    let canvas = document.get_element_by_id("main")?.dyn_into::<web_sys::HtmlCanvasElement>().ok()?;
 
-    let ctx = canvas
-        .get_context("2d")
-        .ok()??
-        .dyn_into::<web_sys::CanvasRenderingContext2d>()
-        .ok()?;
+    let ctx = canvas.get_context("2d").ok()??.dyn_into::<web_sys::CanvasRenderingContext2d>().ok()?;
 
     let ctx = DrawContext::new(ctx);
 
     let mut ctx =
         ctx.transform(Affine2::from_scale(Vec2::splat(32.0)) * Affine2::from_translation(Vec2::new(10.0, 15.0)));
+
+    let mut scene = PixelScene::new();
 
     anim_loop(move || {
         let window_width = window().unwrap().inner_width().unwrap().as_f64().unwrap() as u32;
@@ -44,44 +41,56 @@ fn run() -> Option<()> {
 
         ctx.clear();
 
-        for (lv, color) in [
-            rgb(0.5, 0.5, 0.5),
-            rgb(0.3, 0.3, 1.0),
-            rgb(1.0, 0.3, 0.3),
-            rgb(0.3, 0.7, 0.3),
-        ]
-        .into_iter()
-        .enumerate()
+        for (lv, color) in
+            [rgb(0.5, 0.5, 0.5), rgb(0.3, 0.3, 1.0), rgb(1.0, 0.3, 0.3), rgb(0.3, 0.7, 0.3)].into_iter().enumerate()
         {
             let size = 1 << lv;
             let cones = (-size..size)
                 .map(|i| {
                     let start = IVec2::new(size, i);
-                    ConeExtension {
-                        start,
-                        end_bottom: start + IVec2::new(size, i),
-                    }
+                    ConeExtension { start, end_bottom: start + IVec2::new(size, i) }
                 })
                 .collect::<Vec<_>>();
 
             for cone in &cones {
+                let fluence =
+                    get_extension::<AveragePosition>(&mut HashMap::new(), (*cone).into(), &scene, ViewDirection::Down);
+
                 ctx.polygon(&cone.polygon().vertices)
-                    .fill(color.with_alpha(if cone.index() % 2 == 0 { 0.3 } else { 0.15 }));
+                    .fill(color.with_alpha(fluence.radiance.value))
+                    .stroke(lumaa(1.0, fluence.transmittance));
             }
 
             for cone in &cones {
                 let mut pixels = HashMap::new();
-                draw_extension(
-                    Extension::Cone(*cone),
-                    if cone.index() % 2 == 0 { 1.0 } else { 0.5 },
-                    &mut pixels,
-                );
+                draw_extension(Extension::Cone(*cone), if cone.index() % 2 == 0 { 1.0 } else { 0.5 }, &mut pixels);
                 for (pixel, weight) in pixels {
-                    ctx.rect(Rect::center_size(pixel.as_vec2() + 0.5, Vec2::splat(0.8)))
-                        .fill(color.with_alpha(weight));
+                    ctx.rect(Rect::center_size(pixel.as_vec2() + 0.5, Vec2::splat(0.8))).fill(color.with_alpha(weight));
                 }
             }
         }
+
+        if ctx.mouse.just_pressed(MouseButton::Left) {
+            let mouse_pos = ctx.mouse_pos();
+            let pos = mouse_pos.floor().as_ivec2();
+            scene.insert(pos, 1.0);
+        }
+        if ctx.mouse.just_pressed(MouseButton::Middle) {
+            let mouse_pos = ctx.mouse_pos();
+            let pos = mouse_pos.floor().as_ivec2();
+            scene.insert(pos, 0.0);
+        }
+        if ctx.mouse.just_pressed(MouseButton::Right) {
+            let mouse_pos = ctx.mouse_pos();
+            let pos = mouse_pos.floor().as_ivec2();
+            scene.remove(&pos);
+        }
+
+        for (cell, radiance) in &scene {
+            ctx.rect(Rect::center_size(cell.as_vec2() + 0.5, Vec2::splat(0.8))).fill(rgb(1.0, *radiance, *radiance));
+        }
+
+        ctx.finish();
     });
 
     Some(())

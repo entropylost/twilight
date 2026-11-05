@@ -5,7 +5,11 @@ use std::process::exit;
 
 use clap::Parser;
 use clap::builder::{PossibleValuesParser, TypedValueParser};
+use glam::IVec2;
 use image::{GrayImage, Luma};
+use twilight::extension::PixelScene;
+use twilight::radiance::{AveragePosition, Constant, Inverse2};
+use twilight::render::ext::render_ext;
 use twilight::render::{DEFAULT_FRUSTUM_START, MergeMode, RadianceKind, RenderSettings};
 use twilight::scene::Scene;
 
@@ -43,6 +47,9 @@ struct Args {
     #[arg(short = 'p', long)]
     pretrace: bool,
 
+    #[arg(short = 'e', long)]
+    ext: bool,
+
     /// Which odd-frustum merges to combine
     #[arg(
         short,
@@ -55,23 +62,18 @@ struct Args {
 }
 
 fn main() {
-    let Args {
-        output,
-        radiance,
-        frustum_start,
-        skip_linear,
-        scale,
-        pretrace,
-        merge_mode,
-    } = Args::parse();
+    let Args { output, radiance, frustum_start, skip_linear, scale, pretrace, ext, merge_mode } = Args::parse();
 
-    let settings = RenderSettings {
-        frustum_start,
-        skip_linear,
-        pretrace,
-        merge_mode,
+    let radiance = if ext {
+        let mut scene = PixelScene::new();
+        scene.insert(IVec2::new(36, 32), 1.0);
+
+        render_ext::<AveragePosition, Inverse2>(&scene)
+    } else {
+        let settings = RenderSettings { frustum_start, skip_linear, pretrace, merge_mode };
+        radiance.render(&Scene::example(), settings)
     };
-    let radiance = radiance.render(&Scene::example(), settings);
+    println!("Radiance: {:?}", radiance[&IVec2::new(36, 35)]);
 
     let image = GrayImage::from_fn(SIZE * scale, SIZE * scale, |x, y| {
         let cell = glam::UVec2::new(x / scale, y / scale).as_ivec2();

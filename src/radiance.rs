@@ -27,9 +27,7 @@ impl Radiance for Constant1d {
         self.value
     }
     fn new(frustum: Frustum, emitter: Vec2) -> Self {
-        Self {
-            value: 1.0 / (emitter.x - frustum.focus().x).abs(),
-        }
+        Self { value: 1.0 / (emitter.x - frustum.focus().x).abs() }
     }
     fn reproject(self, _source: Frustum, _target: Frustum) -> Self {
         self
@@ -38,17 +36,13 @@ impl Radiance for Constant1d {
 impl Add for Constant1d {
     type Output = Self;
     fn add(self, other: Self) -> Self {
-        Self {
-            value: self.value + other.value,
-        }
+        Self { value: self.value + other.value }
     }
 }
 impl Mul<f32> for Constant1d {
     type Output = Self;
     fn mul(self, rhs: f32) -> Self {
-        Self {
-            value: self.value * rhs,
-        }
+        Self { value: self.value * rhs }
     }
 }
 
@@ -56,14 +50,17 @@ impl Mul<f32> for Constant1d {
 pub struct Constant {
     pub value: f32,
 }
+impl<L: Radiance> ResampleRadiance<L> for Constant {
+    fn resample(original: L, source: Frustum, target: Frustum) -> Self {
+        Self { value: original.read(source, target.focus()) }
+    }
+}
 impl Radiance for Constant {
     fn read(self, _source: Frustum, _target: Vec2) -> f32 {
         self.value
     }
     fn new(frustum: Frustum, emitter: Vec2) -> Self {
-        Self {
-            value: 1.0 / (emitter - frustum.focus()).length(),
-        }
+        Self { value: 1.0 / (emitter - frustum.focus()).length() }
     }
     fn reproject(self, _source: Frustum, _target: Frustum) -> Self {
         self
@@ -72,17 +69,13 @@ impl Radiance for Constant {
 impl Add for Constant {
     type Output = Self;
     fn add(self, other: Self) -> Self {
-        Self {
-            value: self.value + other.value,
-        }
+        Self { value: self.value + other.value }
     }
 }
 impl Mul<f32> for Constant {
     type Output = Self;
     fn mul(self, rhs: f32) -> Self {
-        Self {
-            value: self.value * rhs,
-        }
+        Self { value: self.value * rhs }
     }
 }
 
@@ -103,10 +96,7 @@ impl Radiance for Quadratic {
         let focus = frustum.focus();
         let dir = frustum.dir();
         let dist = (emitter - focus).dot(dir.normalize());
-        Self {
-            value: 1.0 / dist,
-            moments: [1.0 / (dist * dist), 2.0 / (dist * dist * dist)],
-        }
+        Self { value: 1.0 / dist, moments: [1.0 / (dist * dist), 2.0 / (dist * dist * dist)] }
     }
     // TODO: This doesn't rotate properly.
     fn reproject(self, source: Frustum, target: Frustum) -> Self {
@@ -132,10 +122,7 @@ impl Add for Quadratic {
 impl Mul<f32> for Quadratic {
     type Output = Self;
     fn mul(self, rhs: f32) -> Self {
-        Self {
-            value: self.value * rhs,
-            moments: [self.moments[0] * rhs, self.moments[1] * rhs],
-        }
+        Self { value: self.value * rhs, moments: [self.moments[0] * rhs, self.moments[1] * rhs] }
     }
 }
 
@@ -186,10 +173,7 @@ impl Add for QuadraticProjected {
 impl Mul<f32> for QuadraticProjected {
     type Output = Self;
     fn mul(self, rhs: f32) -> Self {
-        Self {
-            value: self.value * rhs,
-            moments: [self.moments[0] * rhs, self.moments[1] * rhs],
-        }
+        Self { value: self.value * rhs, moments: [self.moments[0] * rhs, self.moments[1] * rhs] }
     }
 }
 
@@ -212,37 +196,25 @@ impl Radiance for LinearProjected {
         let multiplier = projected_dist / dist;
 
         // target function: multiplier / projected_dist wrt. projected_dist
-        Self {
-            value: multiplier / projected_dist,
-            moment: multiplier / (projected_dist * projected_dist),
-        }
+        Self { value: multiplier / projected_dist, moment: multiplier / (projected_dist * projected_dist) }
     }
     fn reproject(self, source: Frustum, target: Frustum) -> Self {
         let source_focus = source.focus();
         let target_focus = target.focus();
         let dist = (target_focus - source_focus).x;
-        Self {
-            value: self.value + self.moment * dist,
-            moment: self.moment,
-        }
+        Self { value: self.value + self.moment * dist, moment: self.moment }
     }
 }
 impl Add for LinearProjected {
     type Output = Self;
     fn add(self, other: Self) -> Self {
-        Self {
-            value: self.value + other.value,
-            moment: self.moment + other.moment,
-        }
+        Self { value: self.value + other.value, moment: self.moment + other.moment }
     }
 }
 impl Mul<f32> for LinearProjected {
     type Output = Self;
     fn mul(self, rhs: f32) -> Self {
-        Self {
-            value: self.value * rhs,
-            moment: self.moment * rhs,
-        }
+        Self { value: self.value * rhs, moment: self.moment * rhs }
     }
 }
 
@@ -261,36 +233,24 @@ impl Radiance for Gradient {
     fn new(frustum: Frustum, emitter: Vec2) -> Self {
         let focus = frustum.focus();
         let dist = (emitter - focus).length();
-        Self {
-            value: 1.0 / dist,
-            gradient: (emitter - focus).normalize() * (1.0 / (dist * dist)),
-        }
+        Self { value: 1.0 / dist, gradient: (emitter - focus).normalize() * (1.0 / (dist * dist)) }
     }
     fn reproject(self, source: Frustum, target: Frustum) -> Self {
         let source_focus = source.focus();
         let target_focus = target.focus();
-        Self {
-            value: self.value + self.gradient.dot(target_focus - source_focus),
-            gradient: self.gradient,
-        }
+        Self { value: self.value + self.gradient.dot(target_focus - source_focus), gradient: self.gradient }
     }
 }
 impl Add for Gradient {
     type Output = Self;
     fn add(self, other: Self) -> Self {
-        Self {
-            value: self.value + other.value,
-            gradient: self.gradient + other.gradient,
-        }
+        Self { value: self.value + other.value, gradient: self.gradient + other.gradient }
     }
 }
 impl Mul<f32> for Gradient {
     type Output = Self;
     fn mul(self, rhs: f32) -> Self {
-        Self {
-            value: self.value * rhs,
-            gradient: self.gradient * rhs,
-        }
+        Self { value: self.value * rhs, gradient: self.gradient * rhs }
     }
 }
 
@@ -305,11 +265,7 @@ pub struct Hessian {
 // Mat2::default() is the identity, so Default can't be derived.
 impl Default for Hessian {
     fn default() -> Self {
-        Self {
-            value: 0.0,
-            gradient: Vec2::ZERO,
-            hessian: Mat2::ZERO,
-        }
+        Self { value: 0.0, gradient: Vec2::ZERO, hessian: Mat2::ZERO }
     }
 }
 impl Radiance for Hessian {
@@ -355,11 +311,7 @@ impl Add for Hessian {
 impl Mul<f32> for Hessian {
     type Output = Self;
     fn mul(self, rhs: f32) -> Self {
-        Self {
-            value: self.value * rhs,
-            gradient: self.gradient * rhs,
-            hessian: self.hessian * rhs,
-        }
+        Self { value: self.value * rhs, gradient: self.gradient * rhs, hessian: self.hessian * rhs }
     }
 }
 
@@ -396,28 +348,19 @@ impl Radiance for AveragedLinear {
         let source_focus = source.focus();
         let target_focus = target.focus();
         let dist = (target_focus - source_focus).x;
-        Self {
-            value: self.value + self.slope * dist,
-            slope: self.slope,
-        }
+        Self { value: self.value + self.slope * dist, slope: self.slope }
     }
 }
 impl Add for AveragedLinear {
     type Output = Self;
     fn add(self, other: Self) -> Self {
-        Self {
-            value: self.value + other.value,
-            slope: self.slope + other.slope,
-        }
+        Self { value: self.value + other.value, slope: self.slope + other.slope }
     }
 }
 impl Mul<f32> for AveragedLinear {
     type Output = Self;
     fn mul(self, rhs: f32) -> Self {
-        Self {
-            value: self.value * rhs,
-            slope: self.slope * rhs,
-        }
+        Self { value: self.value * rhs, slope: self.slope * rhs }
     }
 }
 
@@ -461,9 +404,7 @@ impl Inverse2 {
 }
 impl<L: Radiance> ResampleRadiance<L> for Inverse2 {
     fn resample(original: L, source: Frustum, target: Frustum) -> Self {
-        Self {
-            samples: Self::sample_points(target).map(|p| original.read(source, p)),
-        }
+        Self { samples: Self::sample_points(target).map(|p| original.read(source, p)) }
     }
 }
 impl Radiance for Inverse2 {
@@ -476,31 +417,23 @@ impl Radiance for Inverse2 {
         self.interpolate((x - x1) / (x0 - x1))
     }
     fn new(frustum: Frustum, emitter: Vec2) -> Self {
-        Self {
-            samples: Self::sample_points(frustum).map(|p| 1.0 / (emitter - p).length()),
-        }
+        Self { samples: Self::sample_points(frustum).map(|p| 1.0 / (emitter - p).length()) }
     }
     // resampled at the target's sample points
     fn reproject(self, source: Frustum, target: Frustum) -> Self {
-        Self {
-            samples: Self::sample_points(target).map(|p| self.read(source, p)),
-        }
+        Self { samples: Self::sample_points(target).map(|p| self.read(source, p)) }
     }
 }
 impl Add for Inverse2 {
     type Output = Self;
     fn add(self, other: Self) -> Self {
-        Self {
-            samples: [self.samples[0] + other.samples[0], self.samples[1] + other.samples[1]],
-        }
+        Self { samples: [self.samples[0] + other.samples[0], self.samples[1] + other.samples[1]] }
     }
 }
 impl Mul<f32> for Inverse2 {
     type Output = Self;
     fn mul(self, rhs: f32) -> Self {
-        Self {
-            samples: self.samples.map(|v| v * rhs),
-        }
+        Self { samples: self.samples.map(|v| v * rhs) }
     }
 }
 
@@ -511,41 +444,32 @@ pub struct AveragePosition {
 }
 impl Radiance for AveragePosition {
     fn read(self, source: Frustum, target: Vec2) -> f32 {
+        if self.value == 0.0 {
+            return 0.0;
+        }
         let depth = self.weighted_depth / self.value;
         let emitter_pos = source.focus() + depth * source.dir() / source.dir().x;
         1.0 / (emitter_pos - target).length()
     }
     fn new(frustum: Frustum, emitter: Vec2) -> Self {
-        Self {
-            value: 1.0,
-            weighted_depth: (emitter - frustum.focus()).x,
-        }
+        Self { value: 1.0, weighted_depth: (emitter - frustum.focus()).x }
     }
     fn reproject(self, source: Frustum, target: Frustum) -> Self {
         let source_focus = source.focus();
         let target_focus = target.focus();
         let dist = (target_focus - source_focus).x;
-        Self {
-            value: self.value,
-            weighted_depth: self.weighted_depth + dist * self.value,
-        }
+        Self { value: self.value, weighted_depth: self.weighted_depth + dist * self.value }
     }
 }
 impl Add for AveragePosition {
     type Output = Self;
     fn add(self, other: Self) -> Self {
-        Self {
-            value: self.value + other.value,
-            weighted_depth: self.weighted_depth + other.weighted_depth,
-        }
+        Self { value: self.value + other.value, weighted_depth: self.weighted_depth + other.weighted_depth }
     }
 }
 impl Mul<f32> for AveragePosition {
     type Output = Self;
     fn mul(self, rhs: f32) -> Self {
-        Self {
-            value: self.value * rhs,
-            weighted_depth: self.weighted_depth * rhs,
-        }
+        Self { value: self.value * rhs, weighted_depth: self.weighted_depth * rhs }
     }
 }

@@ -49,8 +49,7 @@ impl MouseStateInner {
         !self.pressed(button) && self.last_pressed(button)
     }
     pub fn step_frame(&self) {
-        self.last_pressed_buttons
-            .store(self.pressed_buttons.load(Ordering::Relaxed), Ordering::Relaxed);
+        self.last_pressed_buttons.store(self.pressed_buttons.load(Ordering::Relaxed), Ordering::Relaxed);
     }
     fn apply_buttons(&self, buttons: u16) {
         self.pressed_buttons.store(buttons as u32, Ordering::Relaxed);
@@ -95,38 +94,27 @@ pub fn register_input_handlers(el: Element) -> MouseState {
         let state = state.clone();
         move |event: MouseEvent| {
             state.apply_buttons(event.buttons());
-            state
-                .last_pressed_buttons
-                .store(event.buttons() as u32, Ordering::Relaxed);
+            state.last_pressed_buttons.store(event.buttons() as u32, Ordering::Relaxed);
         }
     })
     .into_js_value();
 
-    el.add_event_listener_with_callback("mousemove", closure.unchecked_ref())
-        .unwrap();
-    el.add_event_listener_with_callback("mousedown", closure.unchecked_ref())
-        .unwrap();
-    el.add_event_listener_with_callback("mouseup", closure.unchecked_ref())
-        .unwrap();
-    el.add_event_listener_with_callback("mouseleave", exit_closure.unchecked_ref())
-        .unwrap();
-    el.add_event_listener_with_callback("mouseenter", enter_closure.unchecked_ref())
-        .unwrap();
+    el.add_event_listener_with_callback("mousemove", closure.unchecked_ref()).unwrap();
+    el.add_event_listener_with_callback("mousedown", closure.unchecked_ref()).unwrap();
+    el.add_event_listener_with_callback("mouseup", closure.unchecked_ref()).unwrap();
+    el.add_event_listener_with_callback("mouseleave", exit_closure.unchecked_ref()).unwrap();
+    el.add_event_listener_with_callback("mouseenter", enter_closure.unchecked_ref()).unwrap();
 
-    /*
-       canvas
-       .add_event_listener_with_callback(
-           "contextmenu",
-           Closure::<dyn FnMut(web_sys::Event)>::new(move |event: web_sys::Event| {
-               event.prevent_default();
-               event.stop_propagation();
-           })
-           .into_js_value()
-           .unchecked_ref(),
-       )
-       .ok()?;
-
-    */
+    el.add_event_listener_with_callback(
+        "contextmenu",
+        Closure::<dyn FnMut(web_sys::Event)>::new(move |event: web_sys::Event| {
+            event.prevent_default();
+            event.stop_propagation();
+        })
+        .into_js_value()
+        .unchecked_ref(),
+    )
+    .unwrap();
 
     state
 }

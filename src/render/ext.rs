@@ -57,6 +57,11 @@ where
     let Frustum::Cone(cone) = frustum else {
         unimplemented!();
     };
+    if frustum.size() > 128 {
+        // debug!("frustum too large: {:?}", frustum);
+        return I::default();
+    }
+
     let view_dir = if cone.index >= 0 { ViewDirection::Up } else { ViewDirection::Down };
 
     let start = cone.focus + cone.lower_dir();
@@ -101,6 +106,9 @@ where
         };
         short * 0.5 + long * 0.5
     };
+    if result.at_focus(frustum).is_nan() {
+        panic!("Radiance is NaN for frustum: {:?}", frustum);
+    }
 
     cache.insert(frustum, result);
     result

@@ -47,6 +47,7 @@ gen_radiance! {
     Gradient,
     Hessian,
     AveragedLinear,
+    AveragePosition,
     Inverse2,
 }
 
