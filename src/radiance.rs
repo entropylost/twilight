@@ -438,18 +438,18 @@ impl Mul<f32> for Inverse2 {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
-pub struct AveragePosition {
+pub struct AverageDepth {
     pub value: f32,
     pub weighted_depth: f32,
 }
-impl Radiance for AveragePosition {
+impl Radiance for AverageDepth {
     fn read(self, source: Frustum, target: Vec2) -> f32 {
         if self.value == 0.0 {
             return 0.0;
         }
         let depth = self.weighted_depth / self.value;
         let emitter_pos = source.focus() + depth * source.dir() / source.dir().x;
-        1.0 / (emitter_pos - target).length()
+        self.value / (emitter_pos - target).length()
     }
     fn new(frustum: Frustum, emitter: Vec2) -> Self {
         Self { value: 1.0, weighted_depth: (emitter - frustum.focus()).x }
@@ -458,18 +458,59 @@ impl Radiance for AveragePosition {
         let source_focus = source.focus();
         let target_focus = target.focus();
         let dist = (target_focus - source_focus).x;
-        Self { value: self.value, weighted_depth: self.weighted_depth + dist * self.value }
+        // depth is measured from the focus, so moving the focus forward brings the emitter closer
+        Self { value: self.value, weighted_depth: self.weighted_depth - dist * self.value }
     }
 }
-impl Add for AveragePosition {
+impl Add for AverageDepth {
     type Output = Self;
     fn add(self, other: Self) -> Self {
         Self { value: self.value + other.value, weighted_depth: self.weighted_depth + other.weighted_depth }
     }
 }
-impl Mul<f32> for AveragePosition {
+impl Mul<f32> for AverageDepth {
     type Output = Self;
     fn mul(self, rhs: f32) -> Self {
         Self { value: self.value * rhs, weighted_depth: self.weighted_depth * rhs }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct AveragePosition {
+    pub value: f32,
+    pub weighted_offset: Vec2,
+}
+impl Radiance for AveragePosition {
+    fn read(self, source: Frustum, target: Vec2) -> f32 {
+        if self.value == 0.0 {
+            return 0.0;
+        }
+        let emitter_pos = source.focus() + self.weighted_offset / self.value;
+        self.value / (emitter_pos - target).length()
+    }
+    fn new(frustum: Frustum, emitter: Vec2) -> Self {
+        Self { value: 1.0, weighted_offset: emitter - frustum.focus() }
+    }
+    fn reproject(self, source: Frustum, target: Frustum) -> Self {
+        // the offset is measured from the focus, so moving the focus forward brings the emitter closer
+        let delta = target.focus() - source.focus();
+        Self { value: self.value, weighted_offset: self.weighted_offset - delta * self.value }
+    }
+}
+impl ResampleRadiance<AveragePosition> for AveragePosition {
+    fn resample(original: AveragePosition, source: Frustum, target: Frustum) -> Self {
+        original.reproject(source, target)
+    }
+}
+impl Add for AveragePosition {
+    type Output = Self;
+    fn add(self, other: Self) -> Self {
+        Self { value: self.value + other.value, weighted_offset: self.weighted_offset + other.weighted_offset }
+    }
+}
+impl Mul<f32> for AveragePosition {
+    type Output = Self;
+    fn mul(self, rhs: f32) -> Self {
+        Self { value: self.value * rhs, weighted_offset: self.weighted_offset * rhs }
     }
 }

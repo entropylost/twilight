@@ -6,4 +6,5 @@ edition = "2024"
 [dependencies]
 glam = "0.32.0"
 rand = "0.10.3"
+image = { version = "0.25.10", default-features = false, features = ["png"] }
 twilight = { version = "0.1.0", path = ".." }

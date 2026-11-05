@@ -8,7 +8,7 @@ use clap::builder::{PossibleValuesParser, TypedValueParser};
 use glam::{IVec2, Vec2};
 use image::{GrayImage, Luma};
 use twilight::extension::PixelScene;
-use twilight::radiance::{AveragePosition, Constant, Inverse2};
+use twilight::radiance::{AverageDepth, Inverse2};
 use twilight::render::ext::render_ext;
 use twilight::render::{DEFAULT_FRUSTUM_START, MergeMode, RadianceKind, RenderSettings};
 use twilight::scene::{Emitter, Scene};
@@ -68,7 +68,7 @@ fn main() {
         let mut scene = PixelScene::new();
         scene.insert(IVec2::new(36, 32), 1.0);
 
-        render_ext::<AveragePosition, Inverse2>(&scene)
+        render_ext::<AverageDepth, Inverse2>(&scene)
     } else {
         let settings = RenderSettings { frustum_start, skip_linear, pretrace, merge_mode };
         radiance.render(

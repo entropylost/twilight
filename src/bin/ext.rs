@@ -7,7 +7,7 @@ use twilight::{
     draw::{DrawContext, lumaa, rgb},
     extension::{ConeExtension, Extension, ExtensionType, PixelScene, ViewDirection, draw_extension, get_extension},
     input::MouseButton,
-    radiance::AveragePosition,
+    radiance::AverageDepth,
     shape::Rect,
 };
 use wasm_bindgen::{JsCast, prelude::Closure};
@@ -54,7 +54,7 @@ fn run() -> Option<()> {
 
             for cone in &cones {
                 let fluence =
-                    get_extension::<AveragePosition>(&mut HashMap::new(), (*cone).into(), &scene, ViewDirection::Down);
+                    get_extension::<AverageDepth>(&mut HashMap::new(), (*cone).into(), &scene, ViewDirection::Down);
 
                 ctx.polygon(&cone.polygon().vertices)
                     .fill(color.with_alpha(fluence.radiance.value))

@@ -4,7 +4,7 @@ use std::rc::Rc;
 use glam::{Affine2, IVec2, Vec2};
 use log::debug;
 use twilight::extension::PixelScene;
-use twilight::radiance::{AveragePosition, Inverse2};
+use twilight::radiance::{AverageDepth, Inverse2};
 use twilight::render::ext::render_ext;
 use twilight::render::{DEFAULT_FRUSTUM_START, MergeMode, RadianceKind, RenderSettings};
 use twilight::scene::{Emitter, Scene};
@@ -72,7 +72,7 @@ fn run() -> Option<()> {
 
         // let kind = RadianceKind::ALL[selector.selected_index().max(0) as usize];
         // let settings = RenderSettings { frustum_start, skip_linear, pretrace, merge_mode };
-        for (cell, radiance) in render_ext::<AveragePosition, Inverse2>(&scene) {
+        for (cell, radiance) in render_ext::<AverageDepth, Inverse2>(&scene) {
             let radiance = radiance.powf(1.0 / 2.2);
             ctx.rect(Rect::center_size(cell.as_vec2(), Vec2::splat(1.0))).fill(lumaa(radiance, 1.0));
         }

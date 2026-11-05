@@ -29,7 +29,7 @@ where
         .map(|end| get_extension(ext_cache, LineExtension { start, end }.into(), scene, view_dir).transmittance);
     let far_variants = [
         (transmissions[0], LineExtension { start: lower_start, end: lower_start + cone.lower_dir() }.into()),
-        (transmissions[1], ConeExtension { start: lower_start, end_bottom: upper_start + cone.lower_dir() }.into()),
+        (transmissions[1], ConeExtension { start: upper_start, end_bottom: upper_start + cone.lower_dir() }.into()),
         // other way
         (transmissions[0], ConeExtension { start: lower_start, end_bottom: lower_start + cone.lower_dir() }.into()),
         (transmissions[1], LineExtension { start: upper_start, end: upper_start + cone.upper_dir() }.into()),
@@ -42,7 +42,7 @@ where
     near + far * 0.5
 }
 
-fn get_radiance_recursive_ext<L: Radiance, I: Radiance>(
+pub fn get_radiance_recursive_ext<L: Radiance, I: Radiance>(
     ext_cache: &mut HashMap<Extension, Fluence<L>>,
     cache: &mut HashMap<Frustum, I>,
     frustum: Frustum,
@@ -131,7 +131,7 @@ where
         rotate_transform * rotate_transform * rotate_transform,
     ];
     let scenes = transforms
-        .map(|t| scene.iter().map(|(k, v)| (t.transform_point2(k.as_vec2()).as_ivec2(), *v)).collect::<PixelScene>());
+        .map(|t| scene.iter().map(|(k, v)| (t.transform_point2(k.as_vec2() + 0.5).floor().as_ivec2(), *v)).collect::<PixelScene>());
 
     let mut image = HashMap::new();
     for cell in range2d(IVec2::splat(1), IVec2::splat(128)) {
