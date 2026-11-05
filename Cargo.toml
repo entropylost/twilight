@@ -10,6 +10,7 @@ ordered-float = "5.5.0"
 palette = "0.7.6"
 image = { version = "0.25.10", default-features = false, features = ["png"] }
 clap = { version = "4.6.7", features = ["derive"] }
+enum_delegate = "0.2.0"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1.7"

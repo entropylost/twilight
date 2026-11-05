@@ -8,6 +8,7 @@ use crate::{
     shape::{LineSegment, Polygon},
 };
 
+#[enum_delegate::register]
 pub trait FrustumType {
     fn focus(&self) -> Vec2;
     fn size(&self) -> i32;
@@ -31,47 +32,10 @@ pub trait FrustumType {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[enum_delegate::implement(FrustumType)]
 pub enum Frustum {
     Linear(LinearFrustum),
     Cone(ConeFrustum),
-}
-impl FrustumType for Frustum {
-    fn focus(&self) -> Vec2 {
-        match self {
-            Frustum::Linear(f) => f.focus(),
-            Frustum::Cone(f) => f.focus(),
-        }
-    }
-    fn size(&self) -> i32 {
-        match self {
-            Frustum::Linear(f) => f.size(),
-            Frustum::Cone(f) => f.size(),
-        }
-    }
-    fn dir(&self) -> Vec2 {
-        match self {
-            Frustum::Linear(f) => f.dir(),
-            Frustum::Cone(f) => f.dir(),
-        }
-    }
-    fn ray_dir(&self, pos: Vec2) -> Vec2 {
-        match self {
-            Frustum::Linear(f) => f.ray_dir(pos),
-            Frustum::Cone(f) => f.ray_dir(pos),
-        }
-    }
-    fn at(&self, t: f32) -> LineSegment {
-        match self {
-            Frustum::Linear(f) => f.at(t),
-            Frustum::Cone(f) => f.at(t),
-        }
-    }
-    fn parity(&self) -> i32 {
-        match self {
-            Frustum::Linear(f) => f.parity(),
-            Frustum::Cone(f) => f.parity(),
-        }
-    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -188,8 +152,8 @@ pub fn merge_even(frustum: Frustum) -> Vec<(Frustum, f32)> {
         ],
     }
 }
-pub fn merge_odd(frustum: Frustum, far: bool, skip_linear: bool) -> Vec<(Frustum, f32)> {
-    let offset = if far { 1 } else { -1 };
+pub fn merge_odd(frustum: Frustum, long: bool, skip_linear: bool) -> Vec<(Frustum, f32)> {
+    let offset = if long { 1 } else { -1 };
     let offset_f = offset as f32;
     match frustum {
         Frustum::Linear(f) => vec![(

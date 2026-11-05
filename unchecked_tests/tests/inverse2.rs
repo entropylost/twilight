@@ -2,8 +2,8 @@ use glam::{IVec2, Vec2};
 use rand::rngs::StdRng;
 use rand::{RngExt, SeedableRng};
 use twilight::frustum::{ConeFrustum, Frustum, FrustumType, merge_even, merge_odd};
-use twilight::transmission::{
-    AveragedLinear, Constant, Gradient, Hessian, Inverse2, Quadratic, QuadraticProjected, Transmission,
+use twilight::radiance::{
+    AveragedLinear, Constant, Gradient, Hessian, Inverse2, Quadratic, QuadraticProjected, Radiance,
 };
 
 // A chain of cone frustums from a size-1 probe down to size 64, each a random even / near-odd / far-odd child of the
@@ -34,16 +34,16 @@ fn random_emitter(rng: &mut StdRng, frustum: Frustum) -> Vec2 {
 
 // The emitter's transmission built at the end of the chain and reprojected back to its start, against the exact
 // 1 / distance from the start's focus: (mean, worst) relative error.
-fn chain_error<T: Transmission>(cases: &[(Vec<Frustum>, Vec2)]) -> (f32, f32) {
+fn chain_error<I: Radiance>(cases: &[(Vec<Frustum>, Vec2)]) -> (f32, f32) {
     let mut sum = 0.0;
     let mut worst: f32 = 0.0;
     for (chain, emitter) in cases {
-        let mut value = T::new(*chain.last().unwrap(), *emitter);
+        let mut value = I::new(*chain.last().unwrap(), *emitter);
         for pair in chain.windows(2).rev() {
             value = value.reproject(pair[1], pair[0]);
         }
         let exact = 1.0 / (*emitter - chain[0].focus()).length();
-        let error = ((value.value() - exact) / exact).abs();
+        let error = ((value.at_focus(chain[0]) - exact) / exact).abs();
         sum += error;
         worst = worst.max(error);
     }

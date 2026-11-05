@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use glam::{Affine2, Vec2};
 use log::debug;
-use twilight::render::{DEFAULT_FRUSTUM_START, MergeMode, RenderSettings, TransmissionKind};
+use twilight::render::{DEFAULT_FRUSTUM_START, MergeMode, RadianceKind, RenderSettings};
 use twilight::scene::{Emitter, Scene};
 use twilight::shape::Rect;
 use wasm_bindgen::JsCast;
@@ -31,14 +31,14 @@ fn run() -> Option<()> {
         .get_element_by_id("transmission")?
         .dyn_into::<web_sys::HtmlSelectElement>()
         .ok()?;
-    for &kind in TransmissionKind::ALL {
+    for &kind in RadianceKind::ALL {
         let option = document
             .create_element("option")
             .ok()?
             .dyn_into::<web_sys::HtmlOptionElement>()
             .ok()?;
         option.set_text(kind.name());
-        option.set_selected(kind == TransmissionKind::default());
+        option.set_selected(kind == RadianceKind::default());
         selector.add_with_html_option_element(&option).ok()?;
     }
     let merge_mode_selector = document
@@ -98,7 +98,7 @@ fn run() -> Option<()> {
         let pretrace = pretrace_input.checked();
         let merge_mode = MergeMode::ALL[merge_mode_selector.selected_index().max(0) as usize];
 
-        let kind = TransmissionKind::ALL[selector.selected_index().max(0) as usize];
+        let kind = RadianceKind::ALL[selector.selected_index().max(0) as usize];
         let settings = RenderSettings {
             frustum_start,
             skip_linear,

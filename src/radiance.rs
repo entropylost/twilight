@@ -5,8 +5,15 @@ use glam::{Mat2, Vec2};
 
 use crate::frustum::{Frustum, FrustumType};
 
-pub trait Transmission: Copy + Add<Output = Self> + Mul<f32, Output = Self> + Default {
-    fn value(self) -> f32;
+pub trait ResampleRadiance<L: Radiance>: Radiance {
+    fn resample(original: L, source: Frustum, target: Frustum) -> Self;
+}
+
+pub trait Radiance: Copy + Add<Output = Self> + Mul<f32, Output = Self> + Default {
+    fn read(self, source: Frustum, target: Vec2) -> f32;
+    fn at_focus(self, frustum: Frustum) -> f32 {
+        self.read(frustum, frustum.focus())
+    }
     fn new(frustum: Frustum, emitter: Vec2) -> Self;
     fn reproject(self, source: Frustum, target: Frustum) -> Self;
 }
@@ -15,8 +22,8 @@ pub trait Transmission: Copy + Add<Output = Self> + Mul<f32, Output = Self> + De
 pub struct Constant1d {
     pub value: f32,
 }
-impl Transmission for Constant1d {
-    fn value(self) -> f32 {
+impl Radiance for Constant1d {
+    fn read(self, _source: Frustum, _target: Vec2) -> f32 {
         self.value
     }
     fn new(frustum: Frustum, emitter: Vec2) -> Self {
@@ -49,8 +56,8 @@ impl Mul<f32> for Constant1d {
 pub struct Constant {
     pub value: f32,
 }
-impl Transmission for Constant {
-    fn value(self) -> f32 {
+impl Radiance for Constant {
+    fn read(self, _source: Frustum, _target: Vec2) -> f32 {
         self.value
     }
     fn new(frustum: Frustum, emitter: Vec2) -> Self {
@@ -86,9 +93,11 @@ pub struct Quadratic {
     // currently just using both derivatives at the focus point
     pub moments: [f32; 2],
 }
-impl Transmission for Quadratic {
-    fn value(self) -> f32 {
-        self.value
+impl Radiance for Quadratic {
+    fn read(self, source: Frustum, target: Vec2) -> f32 {
+        let source_focus = source.focus();
+        let dist = (target - source_focus).dot(source.dir().normalize());
+        self.value + self.moments[0] * dist + 0.5 * self.moments[1] * dist * dist
     }
     fn new(frustum: Frustum, emitter: Vec2) -> Self {
         let focus = frustum.focus();
@@ -136,9 +145,11 @@ pub struct QuadraticProjected {
     // along the x-axis
     pub moments: [f32; 2],
 }
-impl Transmission for QuadraticProjected {
-    fn value(self) -> f32 {
-        self.value
+impl Radiance for QuadraticProjected {
+    fn read(self, source: Frustum, target: Vec2) -> f32 {
+        let source_focus = source.focus();
+        let dist = (target - source_focus).x;
+        self.value + self.moments[0] * dist + 0.5 * self.moments[1] * dist * dist
     }
     fn new(frustum: Frustum, emitter: Vec2) -> Self {
         let focus = frustum.focus();
@@ -188,9 +199,11 @@ pub struct LinearProjected {
     pub value: f32,
     pub moment: f32,
 }
-impl Transmission for LinearProjected {
-    fn value(self) -> f32 {
-        self.value
+impl Radiance for LinearProjected {
+    fn read(self, source: Frustum, target: Vec2) -> f32 {
+        let source_focus = source.focus();
+        let dist = (target - source_focus).x;
+        self.value + self.moment * dist
     }
     fn new(frustum: Frustum, emitter: Vec2) -> Self {
         let focus = frustum.focus();
@@ -239,9 +252,11 @@ pub struct Gradient {
     // spatial derivatives in both directions
     pub gradient: Vec2,
 }
-impl Transmission for Gradient {
-    fn value(self) -> f32 {
-        self.value
+impl Radiance for Gradient {
+    fn read(self, source: Frustum, target: Vec2) -> f32 {
+        let source_focus = source.focus();
+        let delta = target - source_focus;
+        self.value + self.gradient.dot(delta)
     }
     fn new(frustum: Frustum, emitter: Vec2) -> Self {
         let focus = frustum.focus();
@@ -297,9 +312,12 @@ impl Default for Hessian {
         }
     }
 }
-impl Transmission for Hessian {
-    fn value(self) -> f32 {
-        self.value
+impl Radiance for Hessian {
+    fn read(self, source: Frustum, target: Vec2) -> f32 {
+        let source_focus = source.focus();
+        let delta = target - source_focus;
+        let hessian_delta = self.hessian * delta;
+        self.value + self.gradient.dot(delta) + 0.5 * delta.dot(hessian_delta)
     }
     fn new(frustum: Frustum, emitter: Vec2) -> Self {
         let focus = frustum.focus();
@@ -351,9 +369,11 @@ pub struct AveragedLinear {
     pub value: f32,
     pub slope: f32,
 }
-impl Transmission for AveragedLinear {
-    fn value(self) -> f32 {
-        self.value
+impl Radiance for AveragedLinear {
+    fn read(self, source: Frustum, target: Vec2) -> f32 {
+        let source_focus = source.focus();
+        let dist = (target - source_focus).x;
+        self.value + self.slope * dist
     }
     // least squares optimal between -c and c.
     fn new(frustum: Frustum, emitter: Vec2) -> Self {
@@ -438,19 +458,22 @@ impl Inverse2 {
             w * f0 + (1.0 - w) * f1
         }
     }
-    // the value for a reader at pos, from its projection onto the centre line
-    fn read(self, frustum: Frustum, pos: Vec2) -> f32 {
-        let dir = frustum.dir();
-        // the projection's column offset from the focus
-        let x = (pos - frustum.focus()).dot(dir) / dir.length_squared() * dir.x;
-        let [x0, x1] = Self::sample_columns(frustum);
-        self.interpolate((x - x1) / (x0 - x1))
+}
+impl<L: Radiance> ResampleRadiance<L> for Inverse2 {
+    fn resample(original: L, source: Frustum, target: Frustum) -> Self {
+        Self {
+            samples: Self::sample_points(target).map(|p| original.read(source, p)),
+        }
     }
 }
-impl Transmission for Inverse2 {
-    // the focus is midway between the samples
-    fn value(self) -> f32 {
-        self.interpolate(0.5)
+impl Radiance for Inverse2 {
+    // the value for a reader at target, from its projection onto the centre line
+    fn read(self, frustum: Frustum, target: Vec2) -> f32 {
+        let dir = frustum.dir();
+        // the projection's column offset from the focus
+        let x = (target - frustum.focus()).dot(dir) / dir.length_squared() * dir.x;
+        let [x0, x1] = Self::sample_columns(frustum);
+        self.interpolate((x - x1) / (x0 - x1))
     }
     fn new(frustum: Frustum, emitter: Vec2) -> Self {
         Self {
@@ -477,6 +500,52 @@ impl Mul<f32> for Inverse2 {
     fn mul(self, rhs: f32) -> Self {
         Self {
             samples: self.samples.map(|v| v * rhs),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct AveragePosition {
+    pub value: f32,
+    pub weighted_depth: f32,
+}
+impl Radiance for AveragePosition {
+    fn read(self, source: Frustum, target: Vec2) -> f32 {
+        let depth = self.weighted_depth / self.value;
+        let emitter_pos = source.focus() + depth * source.dir() / source.dir().x;
+        1.0 / (emitter_pos - target).length()
+    }
+    fn new(frustum: Frustum, emitter: Vec2) -> Self {
+        Self {
+            value: 1.0,
+            weighted_depth: (emitter - frustum.focus()).x,
+        }
+    }
+    fn reproject(self, source: Frustum, target: Frustum) -> Self {
+        let source_focus = source.focus();
+        let target_focus = target.focus();
+        let dist = (target_focus - source_focus).x;
+        Self {
+            value: self.value,
+            weighted_depth: self.weighted_depth + dist * self.value,
+        }
+    }
+}
+impl Add for AveragePosition {
+    type Output = Self;
+    fn add(self, other: Self) -> Self {
+        Self {
+            value: self.value + other.value,
+            weighted_depth: self.weighted_depth + other.weighted_depth,
+        }
+    }
+}
+impl Mul<f32> for AveragePosition {
+    type Output = Self;
+    fn mul(self, rhs: f32) -> Self {
+        Self {
+            value: self.value * rhs,
+            weighted_depth: self.weighted_depth * rhs,
         }
     }
 }

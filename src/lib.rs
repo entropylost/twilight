@@ -6,10 +6,10 @@ pub fn range2d(start: IVec2, end: IVec2) -> impl Iterator<Item = IVec2> {
 
 pub mod extension;
 pub mod frustum;
+pub mod radiance;
 pub mod render;
 pub mod scene;
 pub mod shape;
-pub mod transmission;
 
 #[cfg(target_arch = "wasm32")]
 pub mod draw;

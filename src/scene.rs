@@ -2,8 +2,8 @@ use glam::{Affine2, Vec2};
 
 use crate::{
     frustum::Frustum,
+    radiance::Radiance,
     shape::{LineSegment, Polygon},
-    transmission::Transmission,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -99,10 +99,10 @@ impl Scene {
                 ))
         })
     }
-    pub fn emission_within<T: Transmission>(&self, source: Frustum, area: &Polygon, bundle: RayBundle) -> T {
-        let mut emission = T::default();
+    pub fn emission_within<I: Radiance>(&self, source: Frustum, area: &Polygon, bundle: RayBundle) -> I {
+        let mut emission = I::default();
         for emitter in self.visible_emitters_within(area, bundle) {
-            emission = emission + T::new(source, emitter.position) * emitter.brightness;
+            emission = emission + I::new(source, emitter.position) * emitter.brightness;
         }
         emission
     }

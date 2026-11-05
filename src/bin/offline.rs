@@ -6,7 +6,7 @@ use std::process::exit;
 use clap::Parser;
 use clap::builder::{PossibleValuesParser, TypedValueParser};
 use image::{GrayImage, Luma};
-use twilight::render::{DEFAULT_FRUSTUM_START, MergeMode, RenderSettings, TransmissionKind};
+use twilight::render::{DEFAULT_FRUSTUM_START, MergeMode, RadianceKind, RenderSettings};
 use twilight::scene::Scene;
 
 const SIZE: u32 = 128;
@@ -22,11 +22,11 @@ struct Args {
     #[arg(
         short,
         long,
-        default_value = TransmissionKind::default().name(),
-        value_parser = PossibleValuesParser::new(TransmissionKind::ALL.iter().map(|kind| kind.name()))
-            .map(|name| name.parse::<TransmissionKind>().unwrap()),
+        default_value = RadianceKind::default().name(),
+        value_parser = PossibleValuesParser::new(RadianceKind::ALL.iter().map(|kind| kind.name()))
+            .map(|name| name.parse::<RadianceKind>().unwrap()),
     )]
-    transmission: TransmissionKind,
+    radiance: RadianceKind,
 
     /// Frustum length
     #[arg(short, long, default_value_t = DEFAULT_FRUSTUM_START)]
@@ -57,7 +57,7 @@ struct Args {
 fn main() {
     let Args {
         output,
-        transmission,
+        radiance,
         frustum_start,
         skip_linear,
         scale,
@@ -71,7 +71,7 @@ fn main() {
         pretrace,
         merge_mode,
     };
-    let radiance = transmission.render(&Scene::example(), settings);
+    let radiance = radiance.render(&Scene::example(), settings);
 
     let image = GrayImage::from_fn(SIZE * scale, SIZE * scale, |x, y| {
         let cell = glam::UVec2::new(x / scale, y / scale).as_ivec2();
