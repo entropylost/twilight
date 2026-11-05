@@ -122,27 +122,34 @@ impl ConeExtension {
     }
 }
 
+impl Extension {
+    // The pixels covered by a size 1 extension, by area. Edges of slope ±1 run through pixel centres, so they split
+    // pixels in half: a size 1 cone (index 0 or -1) covers its pixel and half of the one beyond its sloped edge, and a
+    // size 1 line of index ±1 covers half of each of the two pixels it crosses. Any other edge has a dyadic slope of
+    // less than 1 and never hits a centre, so whole pixels are assigned as in the larger extensions.
+    fn pixel_weights(&self) -> Vec<(IVec2, f32)> {
+        assert_eq!(self.size(), 1);
+        let start = self.start();
+        match self {
+            Extension::Line(ext) if ext.index() == 0 => vec![(start, 1.0)],
+            Extension::Line(ext) => {
+                assert_eq!(ext.index().abs(), 1, "{ext:?}");
+                vec![(start, 0.5), (start + IVec2::Y * ext.index(), 0.5)]
+            }
+            Extension::Cone(ext) => {
+                let side = if ext.index() >= 0 { IVec2::Y } else { -IVec2::Y };
+                vec![(start, 1.0), (start + side, 0.5)]
+            }
+        }
+    }
+}
+
 pub fn draw_extension(extension: Extension, weight: f32, pixels: &mut HashMap<IVec2, f32>) {
     if extension.size() == 1 {
-        *pixels.entry(extension.start()).or_default() += weight;
-        return;
-    }
-    if let Extension::Cone(ext) = extension
-        && ext.size() == 2
-    {
-        if extension.index() == 1 {
-            draw_extension(
-                Extension::Line(LineExtension { start: ext.start + IVec2::Y, end: ext.end_bottom + IVec2::Y }),
-                weight * 0.5,
-                pixels,
-            );
-        } else if extension.index() == -2 {
-            draw_extension(
-                Extension::Line(LineExtension { start: ext.start - IVec2::Y, end: ext.end_bottom - IVec2::Y }),
-                weight * 0.5,
-                pixels,
-            );
+        for (pixel, w) in extension.pixel_weights() {
+            *pixels.entry(pixel).or_default() += weight * w;
         }
+        return;
     }
     match extension {
         Extension::Line(ext) => {
@@ -185,11 +192,15 @@ pub fn get_extension<L: Radiance>(
     let f = extension.as_frustum();
     // figure out edge cases later.
     if extension.size() == 1 {
-        let pixel = extension.start();
-        return Fluence {
-            transmittance: 1.0,
-            radiance: L::new(f, pixel.as_vec2() + 0.5) * pixel_scene.get(&pixel).copied().unwrap_or(0.0),
-        };
+        let radiance = extension
+            .pixel_weights()
+            .into_iter()
+            .map(|(pixel, weight)| {
+                L::new(f, pixel.as_vec2() + 0.5) * (pixel_scene.get(&pixel).copied().unwrap_or(0.0) * weight)
+            })
+            .reduce(|a, b| a + b)
+            .unwrap();
+        return Fluence { transmittance: 1.0, radiance };
         /*if let Some(_value) = pixel_scene.get(&pixel) {
             Fluence { transmittance: 1.0, radiance: L::default() }
         } else {

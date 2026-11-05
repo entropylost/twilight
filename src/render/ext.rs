@@ -156,9 +156,14 @@ where
                     end: frustum.at(transmittance_start),
                 });*/
 
+                // The extensions start one column out; the triangle before that is half of the pixel next to the probe.
+                let near_pixel = probe.as_ivec2() + IVec2::Y * i;
+                let near_emission = scene.get(&near_pixel).copied().unwrap_or(0.0) * 0.5;
+                let near = Constant::new(frustum, near_pixel.as_vec2() + 0.5).value * near_emission;
+
                 let (ext_cache, cache) = caches.entry((k, i)).or_default();
                 let radiance = get_radiance_recursive_ext(ext_cache, cache, frustum, scene);
-                total_radiance += radiance.at_focus(frustum); // * transmission + emission.value;
+                total_radiance += radiance.at_focus(frustum) + near; // * transmission + emission.value;
             }
         }
         image.insert(cell, total_radiance);
