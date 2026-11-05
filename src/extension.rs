@@ -208,28 +208,6 @@ pub enum ViewDirection {
     Down = -1,
 }
 
-impl Extension {
-    // The pixels that the rays of a size 1 extension pass through, in order, with the share of its rays that cross each.
-    // Every ray enters the column through the start pixel. A line of index Â±1 runs at 45Â°, so all its rays also leave
-    // through the pixel above or below. A cone (index 0 or -1) fans out from its focus with slopes [0, 1] or [-1, 0];
-    // the half of its slopes steeper than 1/2 cross into the pixel beyond its sloped edge before the column ends.
-    fn crossed_pixels(&self) -> Vec<(IVec2, f32)> {
-        assert_eq!(self.size(), 1);
-        let start = self.start();
-        match self {
-            Extension::Line(ext) if ext.index() == 0 => vec![(start, 1.0)],
-            Extension::Line(ext) => {
-                assert_eq!(ext.index().abs(), 1, "{ext:?}");
-                vec![(start, 1.0), (start + IVec2::Y * ext.index(), 1.0)]
-            }
-            Extension::Cone(ext) => {
-                let side = if ext.index() >= 0 { IVec2::Y } else { -IVec2::Y };
-                vec![(start, 1.0), (start + side, 0.5)]
-            }
-        }
-    }
-}
-
 // note: pixel_scene is offset by 0.5
 pub fn get_extension<L: Radiance>(
     cache: &mut HashMap<Extension, Fluence<L>>,

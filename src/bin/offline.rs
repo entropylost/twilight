@@ -72,9 +72,9 @@ fn main() {
         let mut scene = PixelScene::new();
 
         let pos = IVec2::new(36, 32);
-        for i in 0..8 {
-            for j in 0..8 {
-                scene.insert(pos + IVec2::new(i, j), 1.0);
+        for i in 0..1 {
+            for j in 0..1 {
+                scene.insert(pos + IVec2::new(i, j), 5.0);
             }
         }
 
