@@ -13,6 +13,40 @@ pub struct Fluence<L: Radiance> {
     pub transmittance: f32,
     pub radiance: L,
 }
+impl<L: Radiance> Fluence<L> {
+    pub fn map<R: Radiance>(self, f: impl FnOnce(L) -> R) -> Fluence<R> {
+        Fluence { transmittance: self.transmittance, radiance: f(self.radiance) }
+    }
+    // Assume that both have the same focal point.
+    pub fn over(&self, other: Fluence<L>) -> Self {
+        Fluence {
+            transmittance: self.transmittance * other.transmittance,
+            radiance: self.radiance + other.radiance * self.transmittance,
+        }
+    }
+    pub fn join(values: impl IntoIterator<Item = Self>) -> Self {
+        let mut count = 0;
+        let mut total_transmittance = 0.0;
+        let mut total_radiance = L::default();
+        for fluence in values {
+            count += 1;
+            total_transmittance += fluence.transmittance;
+            total_radiance = total_radiance + fluence.radiance;
+        }
+        Fluence { transmittance: total_transmittance / count as f32, radiance: total_radiance }
+    }
+    pub fn join_weighted(values: impl IntoIterator<Item = (Self, f32)>) -> Self {
+        let mut total_weight = 0.0;
+        let mut total_transmittance = 0.0;
+        let mut total_radiance = L::default();
+        for (fluence, weight) in values {
+            total_weight += weight;
+            total_transmittance += fluence.transmittance * weight;
+            total_radiance = total_radiance + fluence.radiance;
+        }
+        Fluence { transmittance: total_transmittance / total_weight, radiance: total_radiance }
+    }
+}
 
 #[enum_delegate::register]
 pub trait ExtensionType {
@@ -168,6 +202,28 @@ pub enum ViewDirection {
     Down = -1,
 }
 
+impl Extension {
+    // The pixels that the rays of a size 1 extension pass through, in order, with the share of its rays that cross each.
+    // Every ray enters the column through the start pixel. A line of index Â±1 runs at 45Â°, so all its rays also leave
+    // through the pixel above or below. A cone (index 0 or -1) fans out from its focus with slopes [0, 1] or [-1, 0];
+    // the half of its slopes steeper than 1/2 cross into the pixel beyond its sloped edge before the column ends.
+    fn crossed_pixels(&self) -> Vec<(IVec2, f32)> {
+        assert_eq!(self.size(), 1);
+        let start = self.start();
+        match self {
+            Extension::Line(ext) if ext.index() == 0 => vec![(start, 1.0)],
+            Extension::Line(ext) => {
+                assert_eq!(ext.index().abs(), 1, "{ext:?}");
+                vec![(start, 1.0), (start + IVec2::Y * ext.index(), 1.0)]
+            }
+            Extension::Cone(ext) => {
+                let side = if ext.index() >= 0 { IVec2::Y } else { -IVec2::Y };
+                vec![(start, 1.0), (start + side, 0.5)]
+            }
+        }
+    }
+}
+
 // note: pixel_scene is offset by 0.5
 pub fn get_extension<L: Radiance>(
     cache: &mut HashMap<Extension, Fluence<L>>,
@@ -185,34 +241,44 @@ pub fn get_extension<L: Radiance>(
     let f = extension.as_frustum();
     // figure out edge cases later.
     if extension.size() == 1 {
-        let pixel = extension.start();
+        let pixels = if let Extension::Cone(cone) = extension {
+            vec![(cone.start, 1.0), (cone.start + if cone.index() >= 0 { IVec2::Y } else { -IVec2::Y }, 0.5)]
+        } else {
+            vec![(extension.start(), 1.0)]
+        };
+        let fluence_values = pixels.into_iter().map(|(pixel, weight)| {
+            let fluence = if let Some(_value) = pixel_scene.get(&pixel) {
+                Fluence { transmittance: 0.0, radiance: L::default() }
+            } else {
+                // pixels are always seen on two sides by probes; so give half radiance for both sides.
+                // could do something more complex, but may not be necessary.
+                let next_pixel = pixel + IVec2::X;
+                let next_pixel_emittance = pixel_scene.get(&next_pixel).copied().unwrap_or(0.0);
+                let side_pixel = pixel + view_dir as i32 * IVec2::Y;
+                let side_pixel_emittance = pixel_scene.get(&side_pixel).copied().unwrap_or(0.0);
+                Fluence {
+                    transmittance: 1.0,
+                    radiance: (L::new_directional(f, pixel.as_vec2() + 0.5 + Vec2::X * 0.5, ViewDir::Right)
+                        * next_pixel_emittance
+                        * 0.5
+                        + L::new_directional(
+                            f,
+                            pixel.as_vec2() + 0.5 + Vec2::Y * 0.5 * view_dir as i32 as f32,
+                            if view_dir == ViewDirection::Up { ViewDir::Up } else { ViewDir::Down },
+                        ) * side_pixel_emittance
+                            * 0.5)
+                        * weight,
+                }
+            };
+            (fluence, weight)
+        });
+        return Fluence::join_weighted(fluence_values);
+
         /*return if let Some(value) = pixel_scene.get(&pixel) {
             Fluence { transmittance: 0.0, radiance: L::new(f, pixel.as_vec2() + 0.5) * *value }
         } else {
             Fluence { transmittance: 1.0, radiance: L::default() }
         };*/
-        return if let Some(_value) = pixel_scene.get(&pixel) {
-            Fluence { transmittance: 0.0, radiance: L::default() }
-        } else {
-            // pixels are always seen on two sides by probes; so give half radiance for both sides.
-            // could do something more complex, but may not be necessary.
-            let next_pixel = pixel + IVec2::X;
-            let next_pixel_emittance = pixel_scene.get(&next_pixel).copied().unwrap_or(0.0);
-            let side_pixel = pixel + view_dir as i32 * IVec2::Y;
-            let side_pixel_emittance = pixel_scene.get(&side_pixel).copied().unwrap_or(0.0);
-            Fluence {
-                transmittance: 1.0,
-                radiance: L::new_directional(f, pixel.as_vec2() + 0.5 + Vec2::X * 0.5, ViewDir::Right)
-                    * next_pixel_emittance
-                    * 0.5
-                    + L::new_directional(
-                        f,
-                        pixel.as_vec2() + 0.5 + Vec2::Y * 0.5 * view_dir as i32 as f32,
-                        if view_dir == ViewDirection::Up { ViewDir::Up } else { ViewDir::Down },
-                    ) * side_pixel_emittance
-                        * 0.5,
-            }
-        };
     }
 
     let mut get_fluence_reproj = |ext: Extension| {
