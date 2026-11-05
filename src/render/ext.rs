@@ -5,7 +5,7 @@ use crate::{
     extension::{
         ConeExtension, Extension, ExtensionType, Fluence, LineExtension, PixelScene, ViewDirection, get_extension,
     },
-    radiance::ResampleRadiance,
+    radiance::{ResampleRadiance, ViewDir},
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -128,6 +128,26 @@ where
     result
 }
 
+// A size-1 cone's extensions start a column ahead of its focus, so the pixel it crosses first, which touches the probe,
+// is never traced. Returns that pixel's transmittance and the emission the probe sees in it.
+fn probe_pixel<L: Radiance>(cone: ConeFrustum, scene: &PixelScene) -> Fluence<Constant> {
+    let pixel = cone.focus + IVec2::new(0, cone.index);
+    if let Some(&value) = scene.get(&pixel) {
+        // the probe is on the pixel's surface, so the pixel fills the whole cone. A face of emittance e seen across an
+        // angle a gives e * a / 2, as get_extension weights each face 1/2 and cos / distance is its angle.
+        return Fluence { transmittance: 0.0, radiance: Constant { value: value * 0.5 * FRAC_PI_4 } };
+    }
+    // an empty size-1 extension, but only the next pixel's face is inside the cone; the side pixel is the next pixel
+    // of a cone in the rotated frame. The next pixel is the cone's first extension, which can't see its own emission.
+    let frustum = Frustum::Cone(cone);
+    let next_pixel = pixel + IVec2::X;
+    let emittance = scene.get(&next_pixel).copied().unwrap_or(0.0);
+    let face = pixel.as_vec2() + Vec2::new(1.0, 0.5);
+    let emission = L::new_directional(frustum, face, ViewDir::Right) * emittance * 0.5;
+    // read the emitter directly; it is too close for the far part's carrier to interpolate
+    Fluence { transmittance: 1.0, radiance: Constant { value: emission.at_focus(frustum) } }
+}
+
 // Returns the total radiance arriving at each cell in [1, 128)^2.
 pub fn render_ext<L: Radiance, I: Radiance>(scene: &PixelScene, settings: RenderExtSettings) -> HashMap<IVec2, f32>
 where
@@ -159,11 +179,18 @@ where
             assert!((probe - probe.round()).length() < 0.001, "{:?}", probe);
             let probe = probe.round();
             for i in [-1, 0] {
-                let frustum = Frustum::Cone(ConeFrustum { focus: probe.as_ivec2(), size: 1, index: i });
+                let cone = ConeFrustum { focus: probe.as_ivec2(), size: 1, index: i };
+                let frustum = Frustum::Cone(cone);
 
+                let Fluence { transmittance, radiance } = probe_pixel::<L>(cone, scene);
+                let near_radiance = radiance.value;
+                if transmittance == 0.0 {
+                    total_radiance += near_radiance;
+                    continue;
+                }
                 let (ext_cache, cache) = caches.entry((k, i)).or_default();
                 let radiance = get_radiance_recursive_ext(ext_cache, cache, frustum, scene, settings);
-                total_radiance += radiance.at_focus(frustum); // * transmission + emission.value;
+                total_radiance += radiance.at_focus(frustum) * transmittance + near_radiance;
             }
         }
         image.insert(cell, total_radiance);
