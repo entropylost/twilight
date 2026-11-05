@@ -4,7 +4,7 @@ use glam::{IVec2, Vec2};
 
 use crate::{
     frustum::{ConeFrustum, Frustum, FrustumType, LinearFrustum},
-    radiance::Radiance,
+    radiance::{Radiance, ViewDir},
     shape::Polygon,
 };
 
@@ -202,8 +202,15 @@ pub fn get_extension<L: Radiance>(
             let side_pixel_emittance = pixel_scene.get(&side_pixel).copied().unwrap_or(0.0);
             Fluence {
                 transmittance: 1.0,
-                radiance: L::new(f, next_pixel.as_vec2() + 0.5) * next_pixel_emittance * 0.5
-                    + L::new(f, side_pixel.as_vec2() + 0.5) * side_pixel_emittance * 0.5,
+                radiance: L::new_directional(f, next_pixel.as_vec2() + 0.5, ViewDir::Right)
+                    * next_pixel_emittance
+                    * 0.5
+                    + L::new_directional(
+                        f,
+                        side_pixel.as_vec2() + 0.5,
+                        if view_dir == ViewDirection::Up { ViewDir::Up } else { ViewDir::Down },
+                    ) * side_pixel_emittance
+                        * 0.5,
             }
         };
     }

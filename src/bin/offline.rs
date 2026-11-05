@@ -78,7 +78,7 @@ fn main() {
             scene.insert(IVec2::new(i, 60), 0.0);
         }
 
-        render_ext::<AveragePosition, Inverse2>(&scene)
+        render_ext::<DirectionalPosition, Inverse2>(&scene)
     } else {
         let settings = RenderSettings { frustum_start, skip_linear, pretrace, merge_mode };
         radiance.render(
@@ -86,7 +86,6 @@ fn main() {
             settings,
         )
     };
-    println!("Radiance: {:?}", radiance[&IVec2::new(36, 35)]);
 
     let image = GrayImage::from_fn(SIZE * scale, SIZE * scale, |x, y| {
         let cell = glam::UVec2::new(x / scale, y / scale).as_ivec2();

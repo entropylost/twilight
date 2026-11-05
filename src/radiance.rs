@@ -5,6 +5,31 @@ use glam::{Mat2, Vec2};
 
 use crate::frustum::{Frustum, FrustumType};
 
+// The direction the ray that is viewing the object is facing
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ViewDir {
+    Left,
+    Right,
+    Down,
+    Up,
+}
+impl ViewDir {
+    pub fn as_vec2(&self) -> Vec2 {
+        match self {
+            Self::Left => -Vec2::X,
+            Self::Right => Vec2::X,
+            Self::Down => -Vec2::Y,
+            Self::Up => Vec2::Y,
+        }
+    }
+    pub fn is_vertical(&self) -> bool {
+        matches!(self, Self::Down | Self::Up)
+    }
+    pub fn is_horizontal(&self) -> bool {
+        matches!(self, Self::Left | Self::Right)
+    }
+}
+
 pub trait ResampleRadiance<L: Radiance>: Radiance {
     fn resample(original: L, source: Frustum, target: Frustum) -> Self;
 }
@@ -15,6 +40,10 @@ pub trait Radiance: Copy + Add<Output = Self> + Mul<f32, Output = Self> + Defaul
         self.read(frustum, frustum.focus())
     }
     fn new(frustum: Frustum, emitter: Vec2) -> Self;
+    #[allow(unused_variables)]
+    fn new_directional(frustum: Frustum, emitter: Vec2, view_dir: ViewDir) -> Self {
+        Self::new(frustum, emitter)
+    }
     fn reproject(self, source: Frustum, target: Frustum) -> Self;
 }
 
@@ -512,5 +541,65 @@ impl Mul<f32> for AveragePosition {
     type Output = Self;
     fn mul(self, rhs: f32) -> Self {
         Self { value: self.value * rhs, weighted_offset: self.weighted_offset * rhs }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct DirectionalPosition {
+    pub directional_emission: Vec2,
+    pub weighted_offset: Vec2,
+}
+impl DirectionalPosition {
+    // needs to be linear. Could potentially square it, but not sure.
+    fn total_emission(&self) -> f32 {
+        self.directional_emission.element_sum()
+    }
+}
+impl Radiance for DirectionalPosition {
+    fn read(self, source: Frustum, target: Vec2) -> f32 {
+        if self.total_emission() == 0.0 {
+            return 0.0;
+        }
+        let emitter_pos = source.focus() + self.weighted_offset / self.total_emission();
+        let view_angle = (emitter_pos - target).normalize();
+
+        // TODO: Could be more accurate.
+        (self.directional_emission.x * view_angle.x.abs() + self.directional_emission.y * view_angle.y.abs())
+            / (emitter_pos - target).length()
+    }
+    fn new(frustum: Frustum, emitter: Vec2) -> Self {
+        Self { directional_emission: Vec2::splat(0.5), weighted_offset: emitter - frustum.focus() }
+    }
+    fn new_directional(frustum: Frustum, emitter: Vec2, view_dir: ViewDir) -> Self {
+        let directional_radiance = if view_dir.is_horizontal() { Vec2::new(1.0, 0.0) } else { Vec2::new(0.0, 1.0) };
+        Self { directional_emission: directional_radiance, weighted_offset: emitter - frustum.focus() }
+    }
+    fn reproject(self, source: Frustum, target: Frustum) -> Self {
+        // the offset is measured from the focus, so moving the focus forward brings the emitter closer
+        let delta = target.focus() - source.focus();
+        Self {
+            directional_emission: self.directional_emission,
+            weighted_offset: self.weighted_offset - delta * self.total_emission(),
+        }
+    }
+}
+impl ResampleRadiance<DirectionalPosition> for DirectionalPosition {
+    fn resample(original: DirectionalPosition, source: Frustum, target: Frustum) -> Self {
+        original.reproject(source, target)
+    }
+}
+impl Add for DirectionalPosition {
+    type Output = Self;
+    fn add(self, other: Self) -> Self {
+        Self {
+            directional_emission: self.directional_emission + other.directional_emission,
+            weighted_offset: self.weighted_offset + other.weighted_offset,
+        }
+    }
+}
+impl Mul<f32> for DirectionalPosition {
+    type Output = Self;
+    fn mul(self, rhs: f32) -> Self {
+        Self { directional_emission: self.directional_emission * rhs, weighted_offset: self.weighted_offset * rhs }
     }
 }
