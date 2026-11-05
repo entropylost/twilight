@@ -81,6 +81,7 @@ fn main() {
     let image = GrayImage::from_fn(SIZE * scale, SIZE * scale, |x, y| {
         let cell = glam::UVec2::new(x / scale, y / scale).as_ivec2();
         let value = radiance.get(&cell).copied().unwrap_or(0.0);
+        let value = value.powf(1.0 / 2.2);
         Luma([(value.clamp(0.0, 1.0) * 255.0).round() as u8])
     });
     image.save(&output).unwrap_or_else(|err| {
