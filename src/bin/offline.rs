@@ -5,13 +5,13 @@ use std::process::exit;
 
 use clap::Parser;
 use clap::builder::{PossibleValuesParser, TypedValueParser};
-use glam::IVec2;
+use glam::{IVec2, Vec2};
 use image::{GrayImage, Luma};
 use twilight::extension::PixelScene;
 use twilight::radiance::{AveragePosition, Constant, Inverse2};
 use twilight::render::ext::render_ext;
 use twilight::render::{DEFAULT_FRUSTUM_START, MergeMode, RadianceKind, RenderSettings};
-use twilight::scene::Scene;
+use twilight::scene::{Emitter, Scene};
 
 const SIZE: u32 = 128;
 
@@ -71,7 +71,10 @@ fn main() {
         render_ext::<AveragePosition, Inverse2>(&scene)
     } else {
         let settings = RenderSettings { frustum_start, skip_linear, pretrace, merge_mode };
-        radiance.render(&Scene::example(), settings)
+        radiance.render(
+            &Scene { occluders: vec![], emitters: vec![Emitter { position: Vec2::new(36.5, 32.5), brightness: 1.0 }] },
+            settings,
+        )
     };
     println!("Radiance: {:?}", radiance[&IVec2::new(36, 35)]);
 
