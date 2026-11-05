@@ -4,7 +4,7 @@ use glam::{IVec2, Vec2};
 
 use crate::{
     frustum::{ConeFrustum, Frustum, FrustumType, LinearFrustum},
-    radiance::{Radiance, ViewDir},
+    radiance::{Radiance, ResampleRadiance, ViewDir},
     shape::Polygon,
 };
 
@@ -16,6 +16,12 @@ pub struct Fluence<L: Radiance> {
 impl<L: Radiance> Fluence<L> {
     pub fn map<R: Radiance>(self, f: impl FnOnce(L) -> R) -> Fluence<R> {
         Fluence { transmittance: self.transmittance, radiance: f(self.radiance) }
+    }
+    pub fn reproject(self, source: Frustum, target: Frustum) -> Self {
+        self.map(|radiance| radiance.reproject(source, target))
+    }
+    pub fn resample<R: ResampleRadiance<L>>(self, source: Frustum, target: Frustum) -> Fluence<R> {
+        self.map(|radiance| R::resample(radiance, source, target))
     }
     // Assume that both have the same focal point.
     pub fn over(&self, other: Fluence<L>) -> Self {
@@ -281,42 +287,21 @@ pub fn get_extension<L: Radiance>(
         };*/
     }
 
-    let mut get_fluence_reproj = |ext: Extension| {
-        let fluence = get_extension(cache, ext, pixel_scene, view_dir);
-        Fluence { transmittance: fluence.transmittance, radiance: fluence.radiance.reproject(ext.as_frustum(), f) }
-    };
+    let mut get_fluence_reproj =
+        |ext: Extension| get_extension(cache, ext, pixel_scene, view_dir).reproject(ext.as_frustum(), f);
 
     let result = match extension {
         Extension::Line(line) => {
-            let [first, second] = line.extend();
-            let first_fluence = get_fluence_reproj(first.into());
-            let second_fluence = get_fluence_reproj(second.into());
-            Fluence {
-                transmittance: first_fluence.transmittance * second_fluence.transmittance,
-                radiance: first_fluence.radiance + second_fluence.radiance * first_fluence.transmittance,
-            }
+            let [first, second] = line.extend().map(|ext| get_fluence_reproj(ext.into()));
+            first.over(second)
         }
         Extension::Cone(cone) => {
             if cone.parity() {
-                let [first, second1, second2] = cone.extend_lines();
-                let first_fluence = get_fluence_reproj(first.into());
-                let second1_fluence = get_fluence_reproj(second1.into());
-                let second2_fluence = get_fluence_reproj(second2.into());
-                Fluence {
-                    transmittance: first_fluence.transmittance
-                        * (second1_fluence.transmittance + second2_fluence.transmittance)
-                        / 2.0,
-                    radiance: first_fluence.radiance
-                        + (second1_fluence.radiance + second2_fluence.radiance) * first_fluence.transmittance,
-                }
+                let [first, second1, second2] = cone.extend_lines().map(|ext| get_fluence_reproj(ext.into()));
+                first.over(Fluence::join([second1, second2]))
             } else {
-                let [first, second] = cone.extend_cones();
-                let first_fluence = get_fluence_reproj(first.into());
-                let second_fluence = get_fluence_reproj(second.into());
-                Fluence {
-                    transmittance: first_fluence.transmittance * second_fluence.transmittance,
-                    radiance: first_fluence.radiance + second_fluence.radiance * first_fluence.transmittance,
-                }
+                let [first, second] = cone.extend_cones().map(|ext| get_fluence_reproj(ext.into()));
+                first.over(second)
             }
         }
     };

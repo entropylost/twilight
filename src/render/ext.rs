@@ -29,14 +29,14 @@ where
     let upper_start = start + cone.upper_dir();
 
     let near_ext = ConeExtension { start, end_bottom: start + cone.lower_dir() };
-    let near_fluence = get_extension(ext_cache, near_ext.into(), scene, view_dir);
+    let near =
+        get_extension(ext_cache, near_ext.into(), scene, view_dir).resample::<I>(near_ext.as_frustum(), cone.into());
     let transmissions = if simplify_occlusion {
-        [near_fluence.transmittance; 2]
+        [near.transmittance; 2]
     } else {
         [lower_start, upper_start]
             .map(|end| get_extension(ext_cache, LineExtension { start, end }.into(), scene, view_dir).transmittance)
     };
-    let near = I::resample(near_fluence.radiance, near_ext.as_frustum(), cone.into());
     let far_variants = [
         (transmissions[0], LineExtension { start: lower_start, end: lower_start + cone.lower_dir() }.into()),
         (transmissions[1], ConeExtension { start: upper_start, end_bottom: upper_start + cone.lower_dir() }.into()),
@@ -45,11 +45,11 @@ where
         (transmissions[1], LineExtension { start: upper_start, end: upper_start + cone.upper_dir() }.into()),
     ]
     .map(|(transmission, ext)| {
-        I::resample(get_extension(ext_cache, ext, scene, view_dir).radiance, ext.as_frustum(), cone.into())
+        get_extension(ext_cache, ext, scene, view_dir).resample::<I>(ext.as_frustum(), cone.into()).radiance
             * transmission
     });
     let far = far_variants.into_iter().reduce(|a, b| a + b).unwrap();
-    near + far * 0.5
+    near.radiance + far * 0.5
 }
 
 pub fn get_radiance_recursive_ext<L: Radiance, I: Radiance>(
@@ -87,26 +87,26 @@ where
     };
     let result = if frustum.parity() == 0 {
         let near_ext = ConeExtension { start, end_bottom: start + cone.lower_dir() };
-        let near_fluence = get_extension(ext_cache, near_ext.into(), scene, view_dir);
+        let near =
+            get_extension(ext_cache, near_ext.into(), scene, view_dir).resample::<I>(near_ext.as_frustum(), frustum);
         let far = merge_even(frustum).into_iter().map(|(f, _weight)| {
             get_radiance_recursive_ext(ext_cache, cache, f, scene, settings).reproject(f, frustum)
-                * if simplify_occlusion { near_fluence.transmittance } else { transmittance_between(ext_cache, f) }
+                * if simplify_occlusion { near.transmittance } else { transmittance_between(ext_cache, f) }
         });
 
-        let near = I::resample(near_fluence.radiance, near_ext.as_frustum(), frustum);
         let far = far.reduce(|a, b| a + b).unwrap();
-        near + far
+        near.radiance + far
     } else {
         let short = {
             let near_ext = LineExtension { start, end: start + cone.lower_dir() + cone.upper_dir() };
-            let near_fluence = get_extension(ext_cache, near_ext.into(), scene, view_dir);
+            let near = get_extension(ext_cache, near_ext.into(), scene, view_dir)
+                .resample::<I>(near_ext.as_frustum(), frustum);
             let far = merge_odd(frustum, false, true).into_iter().map(|(f, _weight)| {
                 get_radiance_recursive_ext(ext_cache, cache, f, scene, settings).reproject(f, frustum)
             });
 
-            let near = I::resample(near_fluence.radiance, near_ext.as_frustum(), frustum);
             let far = far.reduce(|a, b| a + b).unwrap();
-            near * (-1.0) + far
+            near.radiance * (-1.0) + far
         };
         let long = {
             let near = calculate_long_near::<L, I>(ext_cache, cone, scene, view_dir, simplify_occlusion);
@@ -182,15 +182,15 @@ where
                 let cone = ConeFrustum { focus: probe.as_ivec2(), size: 1, index: i };
                 let frustum = Frustum::Cone(cone);
 
-                let Fluence { transmittance, radiance } = probe_pixel::<L>(cone, scene);
-                let near_radiance = radiance.value;
-                if transmittance == 0.0 {
-                    total_radiance += near_radiance;
+                let near = probe_pixel::<L>(cone, scene);
+                if near.transmittance == 0.0 {
+                    total_radiance += near.radiance.value;
                     continue;
                 }
                 let (ext_cache, cache) = caches.entry((k, i)).or_default();
-                let radiance = get_radiance_recursive_ext(ext_cache, cache, frustum, scene, settings);
-                total_radiance += radiance.at_focus(frustum) * transmittance + near_radiance;
+                let far = get_radiance_recursive_ext(ext_cache, cache, frustum, scene, settings);
+                let far = Fluence { transmittance: 1.0, radiance: Constant { value: far.at_focus(frustum) } };
+                total_radiance += near.over(far).radiance.value;
             }
         }
         image.insert(cell, total_radiance);
