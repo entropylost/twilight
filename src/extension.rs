@@ -186,12 +186,13 @@ pub fn get_extension<L: Radiance>(
     // figure out edge cases later.
     if extension.size() == 1 {
         let pixel = extension.start();
-        return Fluence {
-            transmittance: 1.0,
-            radiance: L::new(f, pixel.as_vec2() + 0.5) * pixel_scene.get(&pixel).copied().unwrap_or(0.0),
-        };
-        /*if let Some(_value) = pixel_scene.get(&pixel) {
+        /*return if let Some(value) = pixel_scene.get(&pixel) {
+            Fluence { transmittance: 0.0, radiance: L::new(f, pixel.as_vec2() + 0.5) * *value }
+        } else {
             Fluence { transmittance: 1.0, radiance: L::default() }
+        };*/
+        return if let Some(_value) = pixel_scene.get(&pixel) {
+            Fluence { transmittance: 0.0, radiance: L::default() }
         } else {
             // pixels are always seen on two sides by probes; so give half radiance for both sides.
             // could do something more complex, but may not be necessary.
@@ -204,7 +205,7 @@ pub fn get_extension<L: Radiance>(
                 radiance: L::new(f, next_pixel.as_vec2() + 0.5) * next_pixel_emittance * 0.5
                     + L::new(f, side_pixel.as_vec2() + 0.5) * side_pixel_emittance * 0.5,
             }
-        };*/
+        };
     }
 
     let mut get_fluence_reproj = |ext: Extension| {

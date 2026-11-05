@@ -66,7 +66,17 @@ fn main() {
 
     let radiance = if ext {
         let mut scene = PixelScene::new();
-        scene.insert(IVec2::new(36, 32), 5.0);
+
+        let pos = IVec2::new(36, 32);
+        for i in 0..8 {
+            for j in 0..8 {
+                scene.insert(pos + IVec2::new(i, j), 1.0);
+            }
+        }
+
+        for i in 0..50 {
+            scene.insert(IVec2::new(i, 60), 0.0);
+        }
 
         render_ext::<AveragePosition, Inverse2>(&scene)
     } else {

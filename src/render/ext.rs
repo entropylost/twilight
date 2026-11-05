@@ -130,8 +130,12 @@ where
         rotate_transform * rotate_transform,
         rotate_transform * rotate_transform * rotate_transform,
     ];
-    let scenes = transforms
-        .map(|t| scene.iter().map(|(k, v)| (t.transform_point2(k.as_vec2() + 0.5).floor().as_ivec2(), *v)).collect::<PixelScene>());
+    let scenes = transforms.map(|t| {
+        scene
+            .iter()
+            .map(|(k, v)| (t.transform_point2(k.as_vec2() + 0.5).floor().as_ivec2(), *v))
+            .collect::<PixelScene>()
+    });
 
     let mut image = HashMap::new();
     for cell in range2d(IVec2::splat(1), IVec2::splat(128)) {
@@ -142,19 +146,6 @@ where
             let probe = probe.round();
             for i in [-1, 0] {
                 let frustum = Frustum::Cone(ConeFrustum { focus: probe.as_ivec2(), size: 1, index: i });
-                // let bundle =
-                //     RayBundle { start: LineSegment::new(probe, probe), end: frustum.at(settings.frustum_start) };
-                /*let emission = scene.emission_within::<Constant>(
-                    frustum,
-                    &RayBundle { start: LineSegment::new(probe, probe), end: frustum.at(settings.frustum_start) }
-                        .as_polygon(),
-                    bundle,
-                );
-                let transmittance_start = if settings.pretrace { 1.0 } else { settings.frustum_start };
-                let transmission = scene.trace_bundle(RayBundle {
-                    start: LineSegment::new(probe, probe),
-                    end: frustum.at(transmittance_start),
-                });*/
 
                 let (ext_cache, cache) = caches.entry((k, i)).or_default();
                 let radiance = get_radiance_recursive_ext(ext_cache, cache, frustum, scene);
