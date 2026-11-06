@@ -10,6 +10,7 @@ use image::{GrayImage, Luma};
 use twilight::extension::PixelScene;
 use twilight::radiance::*;
 use twilight::render::ext::{RenderExtSettings, render_ext};
+use twilight::render::pt::{RenderPtSettings, render_pt};
 use twilight::render::{DEFAULT_FRUSTUM_START, MergeMode, RadianceKind, RenderSettings};
 use twilight::scene::{Emitter, Scene};
 
@@ -53,6 +54,18 @@ struct Args {
     #[arg(short, long)]
     simplify_occlusion: bool,
 
+    /// Path trace the pixel scene used by --ext
+    #[arg(short = 't', long)]
+    pt: bool,
+
+    /// Rays per probe when path tracing
+    #[arg(short, long, default_value_t = 256)]
+    directions: u32,
+
+    /// Seed for the per-probe ray rotation when path tracing
+    #[arg(long, default_value_t = 0)]
+    seed: u64,
+
     /// Which odd-frustum merges to combine
     #[arg(
         short,
@@ -64,25 +77,42 @@ struct Args {
     merge_mode: MergeMode,
 }
 
+fn pixel_scene() -> PixelScene {
+    let mut scene = PixelScene::new();
+
+    let pos = IVec2::new(36, 32);
+    for i in 0..1 {
+        for j in 0..1 {
+            scene.insert(pos + IVec2::new(i, j), 5.0);
+        }
+    }
+
+    for i in 0..50 {
+        scene.insert(IVec2::new(i, 60), 0.0);
+    }
+    scene
+}
+
 fn main() {
-    let Args { output, radiance, frustum_start, skip_linear, scale, pretrace, ext, simplify_occlusion, merge_mode } =
-        Args::parse();
+    let Args {
+        output,
+        radiance,
+        frustum_start,
+        skip_linear,
+        scale,
+        pretrace,
+        ext,
+        simplify_occlusion,
+        pt,
+        directions,
+        seed,
+        merge_mode,
+    } = Args::parse();
 
-    let radiance = if ext {
-        let mut scene = PixelScene::new();
-
-        let pos = IVec2::new(36, 32);
-        for i in 0..1 {
-            for j in 0..1 {
-                scene.insert(pos + IVec2::new(i, j), 5.0);
-            }
-        }
-
-        for i in 0..50 {
-            scene.insert(IVec2::new(i, 60), 0.0);
-        }
-
-        render_ext::<DirectionalPosition, Inverse2>(&scene, RenderExtSettings { simplify_occlusion })
+    let radiance = if pt {
+        render_pt(&pixel_scene(), RenderPtSettings { directions, seed })
+    } else if ext {
+        render_ext::<DirectionalPosition, Inverse2>(&pixel_scene(), RenderExtSettings { simplify_occlusion })
     } else {
         let settings = RenderSettings { frustum_start, skip_linear, pretrace, merge_mode };
         radiance.render(

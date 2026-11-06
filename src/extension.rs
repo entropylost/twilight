@@ -225,13 +225,9 @@ pub fn get_extension<L: Radiance>(
     let f = extension.as_frustum();
     // figure out edge cases later.
     if extension.size() == 1 {
-        let pixels = if let Extension::Cone(cone) = extension {
-            vec![(cone.start, 1.0), (cone.start + if cone.index() >= 0 { IVec2::Y } else { -IVec2::Y }, 0.5)]
-        } else {
-            vec![(extension.start(), 1.0)]
-        };
-        let fluence_values = pixels.into_iter().map(|(pixel, weight)| {
-            let fluence = if let Some(_value) = pixel_scene.get(&pixel) {
+        // the light seen through a pixel's faces, given the share of the extension's width that crosses the pixel
+        let pixel_fluence = |pixel: IVec2, weight: f32| {
+            if let Some(_value) = pixel_scene.get(&pixel) {
                 Fluence { transmittance: 0.0, radiance: L::default() }
             } else {
                 // pixels are always seen on two sides by probes; so give half radiance for both sides.
@@ -253,10 +249,24 @@ pub fn get_extension<L: Radiance>(
                             * 0.5)
                         * weight,
                 }
-            };
-            (fluence, weight)
-        });
-        return Fluence::join_weighted(fluence_values);
+            }
+        };
+        return match extension {
+            Extension::Cone(cone) => {
+                let side = cone.start + if cone.index() >= 0 { IVec2::Y } else { -IVec2::Y };
+                Fluence::join_weighted(
+                    [(cone.start, 1.0), (side, 0.5)].map(|(pixel, weight)| (pixel_fluence(pixel, weight), weight)),
+                )
+            }
+            // A diagonal line covers half of its start and half of the pixel it moves into, but every ray crosses both,
+            // so either one blocks it. Treating it as its start alone misses the half of the next pixel that lies on
+            // the edge of the root cone, which leaves cross artifacts along the diagonals.
+            Extension::Line(line) if line.index() != 0 => {
+                let side = line.start + IVec2::Y * line.index().signum();
+                pixel_fluence(line.start, 0.5).over(pixel_fluence(side, 0.5))
+            }
+            Extension::Line(line) => pixel_fluence(line.start, 1.0),
+        };
 
         /*return if let Some(value) = pixel_scene.get(&pixel) {
             Fluence { transmittance: 0.0, radiance: L::new(f, pixel.as_vec2() + 0.5) * *value }

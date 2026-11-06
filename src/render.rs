@@ -12,6 +12,7 @@ use crate::scene::{RayBundle, Scene};
 use crate::shape::LineSegment;
 
 pub mod ext;
+pub mod pt;
 
 macro_rules! gen_radiance {
     ($($name:ident),* $(,)?) => {

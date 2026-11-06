@@ -12,6 +12,7 @@ image = { version = "0.25.10", default-features = false, features = ["png"] }
 clap = { version = "4.6.7", features = ["derive"] }
 enum_delegate = "0.2.0"
 color-eyre = "0.6.5"
+rand = { version = "0.10.3", default-features = false }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1.7"

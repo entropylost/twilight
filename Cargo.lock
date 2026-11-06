@@ -810,6 +810,7 @@ dependencies = [
  "log",
  "ordered-float",
  "palette",
+ "rand 0.10.3",
  "wasm-bindgen",
  "wasm-logger",
  "web-sys",
