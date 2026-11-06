@@ -58,3 +58,31 @@ fn pt_vs_ext() {
         println!("dy={dy:3} {row}");
     }
 }
+
+#[test]
+fn pt_occluder_outside_emissive_bounds() {
+    // a wall between the probe and the emitter, entirely outside the emissive bounds, still blocks it
+    let mut scene = PixelScene::from([(EMITTER, 1.0)]);
+    for x in 20..50 {
+        scene.insert(IVec2::new(x, 40), 0.0);
+    }
+    let blocked = probe_fluence(&scene, (EMITTER + IVec2::new(0, 20)).as_vec2(), 0.5, 1 << 12);
+    assert_eq!(blocked, 0.0);
+    let open = probe_fluence(&scene, (EMITTER + IVec2::new(0, -20)).as_vec2(), 0.5, 1 << 12);
+    assert!(open > 0.0);
+}
+
+#[test]
+fn pt_low_directions() {
+    // with NEE, even a few rays per probe land on a lone emitter and give its fluence to within a few percent
+    let scene = PixelScene::from([(EMITTER, 1.0)]);
+    let pt = render_pt(&scene, RenderPtSettings { directions: 16, seed: 3 });
+    let mut worst = 0.0f32;
+    for (&cell, &value) in &pt {
+        if (cell - EMITTER).as_vec2().length() >= 4.0 {
+            worst = worst.max((value / expected(cell) - 1.0).abs());
+        }
+    }
+    println!("worst relative error at 16 directions: {worst}");
+    assert!(worst < 0.1, "{worst}");
+}
