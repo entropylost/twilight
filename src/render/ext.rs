@@ -18,7 +18,6 @@ fn calculate_long_near<L: Radiance, I: Radiance>(
     cone: ConeFrustum,
     scene: &PixelScene,
     view_dir: ViewDirection,
-    simplify_occlusion: bool,
 ) -> I
 where
     I: ResampleRadiance<L>,
@@ -29,15 +28,16 @@ where
     let middle_end = start + cone.lower_dir() + cone.upper_dir();
 
     let middle = LineExtension { start, end: middle_end };
-    let middle = get_extension(ext_cache, middle.into(), scene, view_dir);
-
     let bottom = ConeExtension { start, end_bottom: lower_end };
     let top = ConeExtension { start, end_bottom: middle_end };
 
-    let bottom = get_extension(ext_cache, bottom.into(), scene, view_dir);
-    let top = get_extension(ext_cache, top.into(), scene, view_dir);
-    let result = bottom.radiance + top.radiance + middle.radiance * -2.0;
-    I::resample(result, cone.into(), cone.into())
+    // Each extension's radiance is relative to its own frustum (e.g. DirectionalPosition stores the emitter offset from
+    // that frustum's focus), and the three have different foci, so each must be resampled into the cone before they are
+    // combined.
+    let [bottom, top, middle] = [bottom.into(), top.into(), middle.into()].map(|ext| {
+        get_extension(ext_cache, ext, scene, view_dir).resample::<I>(ext.as_frustum(), cone.into()).radiance
+    });
+    bottom + top + middle * -2.0
 }
 
 pub fn get_radiance_recursive_ext<L: Radiance, I: Radiance>(
@@ -97,7 +97,7 @@ where
             far
         };
         let long = {
-            let near = calculate_long_near::<L, I>(ext_cache, cone, scene, view_dir, simplify_occlusion);
+            let near = calculate_long_near::<L, I>(ext_cache, cone, scene, view_dir);
             let far = merge_odd(frustum, true, true).into_iter().map(|(f, _weight)| {
                 get_radiance_recursive_ext(ext_cache, cache, f, scene, settings).reproject(f, frustum)
                     * transmittance_between(ext_cache, f)
