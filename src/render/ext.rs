@@ -13,7 +13,6 @@ pub struct RenderExtSettings {
     pub simplify_occlusion: bool,
 }
 
-// splits long cone into near cone, and far cone + a line (both ways). Also uses two more lines for occlusion.
 fn calculate_long_near<L: Radiance, I: Radiance>(
     ext_cache: &mut HashMap<Extension, Fluence<L>>,
     cone: ConeFrustum,
@@ -24,32 +23,21 @@ fn calculate_long_near<L: Radiance, I: Radiance>(
 where
     I: ResampleRadiance<L>,
 {
+    // println!("Cone: {:?}", cone);
     let start = cone.focus + cone.lower_dir();
-    let lower_start = start + cone.lower_dir();
-    let upper_start = start + cone.upper_dir();
+    let lower_end = start + cone.lower_dir() * 2;
+    let middle_end = start + cone.lower_dir() + cone.upper_dir();
 
-    let near_ext = ConeExtension { start, end_bottom: start + cone.lower_dir() };
-    let near =
-        get_extension(ext_cache, near_ext.into(), scene, view_dir).resample::<I>(near_ext.as_frustum(), cone.into());
-    let transmissions = if simplify_occlusion {
-        [near.transmittance; 2]
-    } else {
-        [lower_start, upper_start]
-            .map(|end| get_extension(ext_cache, LineExtension { start, end }.into(), scene, view_dir).transmittance)
-    };
-    let far_variants = [
-        (transmissions[0], LineExtension { start: lower_start, end: lower_start + cone.lower_dir() }.into()),
-        (transmissions[1], ConeExtension { start: upper_start, end_bottom: upper_start + cone.lower_dir() }.into()),
-        // other way
-        (transmissions[0], ConeExtension { start: lower_start, end_bottom: lower_start + cone.lower_dir() }.into()),
-        (transmissions[1], LineExtension { start: upper_start, end: upper_start + cone.upper_dir() }.into()),
-    ]
-    .map(|(transmission, ext)| {
-        get_extension(ext_cache, ext, scene, view_dir).resample::<I>(ext.as_frustum(), cone.into()).radiance
-            * transmission
-    });
-    let far = far_variants.into_iter().reduce(|a, b| a + b).unwrap();
-    near.radiance + far * 0.5
+    let middle = LineExtension { start, end: middle_end };
+    let middle = get_extension(ext_cache, middle.into(), scene, view_dir);
+
+    let bottom = ConeExtension { start, end_bottom: lower_end };
+    let top = ConeExtension { start, end_bottom: middle_end };
+
+    let bottom = get_extension(ext_cache, bottom.into(), scene, view_dir);
+    let top = get_extension(ext_cache, top.into(), scene, view_dir);
+    let result = bottom.radiance + top.radiance + middle.radiance * -2.0;
+    I::resample(result, cone.into(), cone.into())
 }
 
 pub fn get_radiance_recursive_ext<L: Radiance, I: Radiance>(
@@ -98,15 +86,15 @@ where
         near.radiance + far
     } else {
         let short = {
-            let near_ext = LineExtension { start, end: start + cone.lower_dir() + cone.upper_dir() };
-            let near = get_extension(ext_cache, near_ext.into(), scene, view_dir)
-                .resample::<I>(near_ext.as_frustum(), frustum);
+            // let near_ext = LineExtension { start, end: start + cone.lower_dir() + cone.upper_dir() };
+            // let near = get_extension(ext_cache, near_ext.into(), scene, view_dir)
+            //     .resample::<I>(near_ext.as_frustum(), frustum);
             let far = merge_odd(frustum, false, true).into_iter().map(|(f, _weight)| {
                 get_radiance_recursive_ext(ext_cache, cache, f, scene, settings).reproject(f, frustum)
             });
 
             let far = far.reduce(|a, b| a + b).unwrap();
-            near.radiance * (-1.0) + far
+            far
         };
         let long = {
             let near = calculate_long_near::<L, I>(ext_cache, cone, scene, view_dir, simplify_occlusion);

@@ -227,6 +227,12 @@ pub fn get_extension<L: Radiance>(
     if extension.size() == 1 {
         // the light seen through a pixel's faces, given the share of the extension's width that crosses the pixel
         let pixel_fluence = |pixel: IVec2, weight: f32| {
+            /*if let Some(value) = pixel_scene.get(&pixel) {
+                Fluence { transmittance: 0.0, radiance: L::new(f, pixel.as_vec2() + 0.5) * *value }
+            } else {
+                Fluence { transmittance: 1.0, radiance: L::default() }
+            }*/
+
             if let Some(_value) = pixel_scene.get(&pixel) {
                 Fluence { transmittance: 0.0, radiance: L::default() }
             } else {
@@ -267,12 +273,6 @@ pub fn get_extension<L: Radiance>(
             }
             Extension::Line(line) => pixel_fluence(line.start, 1.0),
         };
-
-        /*return if let Some(value) = pixel_scene.get(&pixel) {
-            Fluence { transmittance: 0.0, radiance: L::new(f, pixel.as_vec2() + 0.5) * *value }
-        } else {
-            Fluence { transmittance: 1.0, radiance: L::default() }
-        };*/
     }
 
     let mut get_fluence_reproj =
