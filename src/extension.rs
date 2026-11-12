@@ -179,8 +179,9 @@ impl Halves {
     }
 }
 
-// Adds the share of each pixel that the extension covers, times weight: the weights `get_extension` gives the pixels'
-// emission when nothing is occluded.
+// Adds the share of each pixel's area that the extension covers, times weight, when nothing is occluded. This is area
+// coverage only: `get_extension` weights emission by the size-1 pieces that start at a pixel (arrival at its near
+// face), not by these shares.
 pub fn draw_extension(extension: Extension, weight: f32, pixels: &mut HashMap<IVec2, f32>) {
     if extension.size() == 1 {
         let start = extension.start();
@@ -242,61 +243,41 @@ pub fn get_extension<L: Radiance>(
     // figure out edge cases later.
     // Size 1 is read straight from the scene and never cached, so looking it up would only cost time.
     if extension.size() == 1 {
-        // the light seen through a pixel's faces, given the share of the extension's width that crosses the pixel
-        let pixel_fluence = |pixel: IVec2, weight: f32| {
-            /*if let Some(value) = pixel_scene.get(&pixel) {
-                Fluence { transmittance: 0.0, radiance: L::new(f, pixel.as_vec2() + 0.5) * *value }
-            } else {
-                Fluence { transmittance: 1.0, radiance: L::default() }
-            }*/
-
-            if let Some(_value) = pixel_scene.get(&pixel) {
-                Fluence::new(0.0, L::default())
-            } else {
-                // pixels are always seen on two sides by probes; so give half radiance for both sides.
-                // could do something more complex, but may not be necessary.
-                let next_pixel = pixel + IVec2::X;
-                let next_pixel_emittance = pixel_scene.get(&next_pixel).copied().unwrap_or(0.0);
-                let side_pixel = pixel + view_dir as i32 * IVec2::Y;
-                let side_pixel_emittance = pixel_scene.get(&side_pixel).copied().unwrap_or(0.0);
-                Fluence::new(
-                    1.0,
-                    (L::new_directional(f, pixel.as_vec2() + 0.5 + Vec2::X * 0.5, ViewDir::Right)
-                        * next_pixel_emittance
-                        * 0.5
-                        + L::new_directional(
-                            f,
-                            pixel.as_vec2() + 0.5 + Vec2::Y * 0.5 * view_dir as i32 as f32,
-                            if view_dir == ViewDirection::Up { ViewDir::Up } else { ViewDir::Down },
-                        ) * side_pixel_emittance
-                            * 0.5)
-                        * weight,
-                )
+        // Emission is attributed by arrival. The decomposition into halves (and the merge) partitions the rays by where
+        // they cross the near edge of each column, and at the near side of its column a size-1 piece is exactly as wide
+        // as its start pixel. So its rays are the ones that arrive at the start pixel's near face: if the start is
+        // solid they see that face and stop. Otherwise the side pixel, if solid, shows them its side face and blocks
+        // the rays that leave sideways. (Weighting a face by the area share of the empty pixel in front of it instead
+        // disagrees with that partition by half a column: rays reaching the face through a solid row neighbour are not
+        // removed, which over-weights every stair-step face of an emitter, depending on the view angle.)
+        // Faces are seen on two sides by probes, hence half radiance for each.
+        let start = extension.start();
+        if let Some(&value) = pixel_scene.get(&start) {
+            let face = start.as_vec2() + Vec2::Y * 0.5;
+            return Fluence::new(0.0, L::new_directional(f, face, ViewDir::Right) * (value * 0.5));
+        }
+        let side = start + view_dir as i32 * IVec2::Y;
+        let (side_transmittance, radiance) = match pixel_scene.get(&side) {
+            Some(&value) => {
+                let face = start.as_vec2() + 0.5 + Vec2::Y * 0.5 * view_dir as i32 as f32;
+                let dir = if view_dir == ViewDirection::Up { ViewDir::Up } else { ViewDir::Down };
+                (0.0, L::new_directional(f, face, dir) * (value * 0.5))
             }
+            None => (1.0, L::default()),
         };
         return match extension {
+            // the rays that leave through the far side of the start pixel only cross the start; the rays that leave
+            // beside it also cross the side pixel
             Extension::Cone(cone) => {
-                // The cone crosses its start pixel and half of the pixel beside it. The rays that leave through the
-                // far side of the start pixel only cross the start; the rays that leave beside it cross both.
-                let up = cone.index() >= 0;
-                let side = cone.start + if up { IVec2::Y } else { -IVec2::Y };
-                let (start, side) = (pixel_fluence(cone.start, 1.0), pixel_fluence(side, 0.5));
-                let (near, far) = (start.transmittance, start.transmittance * side.transmittance);
-                let (bottom, top) = if up { (near, far) } else { (far, near) };
-                Fluence {
-                    transmittance: (bottom + top) * 0.5,
-                    radiance: start.radiance + side.radiance,
-                    spread: (top - bottom) * 0.5,
-                }
+                let (bottom, top) =
+                    if cone.index() >= 0 { (1.0, side_transmittance) } else { (side_transmittance, 1.0) };
+                Fluence { transmittance: (bottom + top) * 0.5, radiance, spread: (top - bottom) * 0.5 }
             }
-            // A diagonal line covers half of its start and half of the pixel it moves into, but every ray crosses both,
-            // so either one blocks it. Treating it as its start alone misses the half of the next pixel that lies on
-            // the edge of the root cone, which leaves cross artifacts along the diagonals.
-            Extension::Line(line) if line.index() != 0 => {
-                let side = line.start + IVec2::Y * line.index().signum();
-                pixel_fluence(line.start, 0.5).over(pixel_fluence(side, 0.5))
-            }
-            Extension::Line(line) => pixel_fluence(line.start, 1.0),
+            // Every ray of a diagonal line crosses both pixels, so either one blocks it. Treating it as its start
+            // alone misses the half of the side pixel that lies on the edge of the root cone, which leaves cross
+            // artifacts along the diagonals.
+            Extension::Line(line) if line.index() != 0 => Fluence::new(side_transmittance, radiance),
+            Extension::Line(_) => Fluence::new(1.0, radiance),
         };
     }
 

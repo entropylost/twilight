@@ -16,6 +16,10 @@
 // cache, so the scene is rendered once to learn which extensions the merge asks for, then the cache is refilled with
 // `head_get_extension`'s values for exactly those and the merge is run again. (Size 1 is never read from the cache, but
 // there the two versions differ only in a cone's transmittance, which the merge does not use.)
+// NOTE: that stopped being true when the renderer moved to emission by arrival (a solid start pixel emits its own near
+// face, see `get_extension`): the size-1 cone at the root now carries different emission than `head_get_extension`'s,
+// and `probe_pixel` no longer adds the next pixel's face. `head` is therefore a mix at the root cone's first column;
+// the numbers recorded in docs/EXT_DEBUG.md from this test predate that change.
 
 use std::collections::HashMap;
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_4};
@@ -166,16 +170,13 @@ fn head_get_extension<L: Radiance>(
 }
 
 // copy of the private `probe_pixel` in src/render/ext.rs
-fn probe_pixel<L: Radiance>(cone: ConeFrustum, scene: &PixelScene) -> Fluence<Constant> {
+fn probe_pixel(cone: ConeFrustum, scene: &PixelScene) -> Fluence<Constant> {
     let pixel = cone.focus + IVec2::new(0, cone.index);
     if let Some(&value) = scene.get(&pixel) {
         return Fluence::new(0.0, Constant { value: value * 0.5 * FRAC_PI_4 });
     }
-    let frustum = Frustum::Cone(cone);
-    let emittance = scene.get(&(pixel + IVec2::X)).copied().unwrap_or(0.0);
-    let face = pixel.as_vec2() + Vec2::new(1.0, 0.5);
-    let emission = L::new_directional(frustum, face, ViewDir::Right) * emittance * 0.5;
-    Fluence::new(1.0, Constant { value: emission.at_focus(frustum) })
+    // the next pixel's face is emitted by the cone's first extension (emission by arrival)
+    Fluence::new(1.0, Constant { value: 0.0 })
 }
 
 type Image = HashMap<IVec2, f32>;
@@ -206,7 +207,7 @@ fn render<L: Radiance, I: Radiance + ResampleRadiance<L>>(scene: &PixelScene, he
                             index: i,
                         };
                         let frustum = Frustum::Cone(cone);
-                        let near = probe_pixel::<L>(cone, scene);
+                        let near = probe_pixel(cone, scene);
                         let value = if near.transmittance == 0.0 {
                             near.radiance.value
                         } else {
