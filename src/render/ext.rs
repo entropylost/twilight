@@ -66,7 +66,7 @@ where
     let view_dir = if cone.index >= 0 { ViewDirection::Up } else { ViewDirection::Down };
 
     let start = cone.focus + cone.lower_dir();
-    let transmittance_between = |ext_cache: &mut HashMap<Extension, Fluence<L>>, f: Frustum| {
+    let transmittance_between = |ext_cache: &mut HashMap<Extension, Fluence<L>, _>, f: Frustum| {
         let Frustum::Cone(c) = f else {
             unreachable!();
         };
@@ -123,7 +123,7 @@ fn probe_pixel<L: Radiance>(cone: ConeFrustum, scene: &PixelScene) -> Fluence<Co
     if let Some(&value) = scene.get(&pixel) {
         // the probe is on the pixel's surface, so the pixel fills the whole cone. A face of emittance e seen across an
         // angle a gives e * a / 2, as get_extension weights each face 1/2 and cos / distance is its angle.
-        return Fluence { transmittance: 0.0, radiance: Constant { value: value * 0.5 * FRAC_PI_4 } };
+        return Fluence::new(0.0, Constant { value: value * 0.5 * FRAC_PI_4 });
     }
     // an empty size-1 extension, but only the next pixel's face is inside the cone; the side pixel is the next pixel
     // of a cone in the rotated frame. The next pixel is the cone's first extension, which can't see its own emission.
@@ -133,7 +133,7 @@ fn probe_pixel<L: Radiance>(cone: ConeFrustum, scene: &PixelScene) -> Fluence<Co
     let face = pixel.as_vec2() + Vec2::new(1.0, 0.5);
     let emission = L::new_directional(frustum, face, ViewDir::Right) * emittance * 0.5;
     // read the emitter directly; it is too close for the far part's carrier to interpolate
-    Fluence { transmittance: 1.0, radiance: Constant { value: emission.at_focus(frustum) } }
+    Fluence::new(1.0, Constant { value: emission.at_focus(frustum) })
 }
 
 // Returns the total radiance arriving at each cell in [1, 128)^2.
@@ -177,7 +177,7 @@ where
                 }
                 let (ext_cache, cache) = caches.entry((k, i)).or_default();
                 let far = get_radiance_recursive_ext(ext_cache, cache, frustum, scene, settings);
-                let far = Fluence { transmittance: 1.0, radiance: Constant { value: far.at_focus(frustum) } };
+                let far = Fluence::new(1.0, Constant { value: far.at_focus(frustum) });
                 total_radiance += near.over(far).radiance.value;
             }
         }

@@ -559,40 +559,46 @@ impl Mul<f32> for AveragePosition {
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct DirectionalPosition {
+    // summed emission of the faces seen horizontally (x) and of those seen vertically (y)
     pub directional_emission: Vec2,
-    pub weighted_offset: Vec2,
-}
-impl DirectionalPosition {
-    // needs to be linear. Could potentially square it, but not sure.
-    fn total_emission(&self) -> f32 {
-        self.directional_emission.element_sum()
-    }
+    // The emission-weighted offset from the focus, for each of the two orientations. They are kept apart because the
+    // two kinds of face of an emitter sit in different places and fall off differently with the view angle; read from
+    // one shared mean position, the result depends on how the faces happen to be spread over the extensions.
+    pub weighted_offsets: [Vec2; 2],
 }
 impl Radiance for DirectionalPosition {
     fn read(self, source: Frustum, target: Vec2) -> f32 {
-        if self.total_emission() == 0.0 {
-            return 0.0;
+        let mut total = 0.0;
+        for (axis, emission) in self.directional_emission.to_array().into_iter().enumerate() {
+            if emission == 0.0 {
+                continue;
+            }
+            let to_emitter = source.focus() + self.weighted_offsets[axis] / emission - target;
+            // TODO: Could be more accurate.
+            // cos / distance
+            total += emission * to_emitter[axis].abs() / to_emitter.length_squared();
         }
-        let emitter_pos = source.focus() + self.weighted_offset / self.total_emission();
-        let view_angle = (emitter_pos - target).normalize();
-
-        // TODO: Could be more accurate.
-        (self.directional_emission.x * view_angle.x.abs() + self.directional_emission.y * view_angle.y.abs())
-            / (emitter_pos - target).length()
+        total
     }
     fn new(frustum: Frustum, emitter: Vec2) -> Self {
-        Self { directional_emission: Vec2::splat(0.5), weighted_offset: emitter - frustum.focus() }
+        let offset = (emitter - frustum.focus()) * 0.5;
+        Self { directional_emission: Vec2::splat(0.5), weighted_offsets: [offset; 2] }
     }
     fn new_directional(frustum: Frustum, emitter: Vec2, view_dir: ViewDir) -> Self {
-        let directional_radiance = if view_dir.is_horizontal() { Vec2::new(1.0, 0.0) } else { Vec2::new(0.0, 1.0) };
-        Self { directional_emission: directional_radiance, weighted_offset: emitter - frustum.focus() }
+        let offset = emitter - frustum.focus();
+        if view_dir.is_horizontal() {
+            Self { directional_emission: Vec2::X, weighted_offsets: [offset, Vec2::ZERO] }
+        } else {
+            Self { directional_emission: Vec2::Y, weighted_offsets: [Vec2::ZERO, offset] }
+        }
     }
     fn reproject(self, source: Frustum, target: Frustum) -> Self {
-        // the offset is measured from the focus, so moving the focus forward brings the emitter closer
+        // the offsets are measured from the focus, so moving the focus forward brings the emitters closer
         let delta = target.focus() - source.focus();
+        let [x, y] = self.weighted_offsets;
         Self {
             directional_emission: self.directional_emission,
-            weighted_offset: self.weighted_offset - delta * self.total_emission(),
+            weighted_offsets: [x - delta * self.directional_emission.x, y - delta * self.directional_emission.y],
         }
     }
 }
@@ -604,15 +610,19 @@ impl ResampleRadiance<DirectionalPosition> for DirectionalPosition {
 impl Add for DirectionalPosition {
     type Output = Self;
     fn add(self, other: Self) -> Self {
+        let ([x, y], [other_x, other_y]) = (self.weighted_offsets, other.weighted_offsets);
         Self {
             directional_emission: self.directional_emission + other.directional_emission,
-            weighted_offset: self.weighted_offset + other.weighted_offset,
+            weighted_offsets: [x + other_x, y + other_y],
         }
     }
 }
 impl Mul<f32> for DirectionalPosition {
     type Output = Self;
     fn mul(self, rhs: f32) -> Self {
-        Self { directional_emission: self.directional_emission * rhs, weighted_offset: self.weighted_offset * rhs }
+        Self {
+            directional_emission: self.directional_emission * rhs,
+            weighted_offsets: self.weighted_offsets.map(|offset| offset * rhs),
+        }
     }
 }

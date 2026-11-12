@@ -10,12 +10,17 @@ use crate::{
 
 #[derive(Debug, Clone, Copy)]
 pub struct Fluence<L: Radiance> {
+    // mean transmittance over the extension's far end
     pub transmittance: f32,
     pub radiance: L,
+    // A cone extension ends two pixels wide (end_bottom, end_top). What blocks the rays towards one of them need not
+    // block the rays towards the other, so the two are kept apart: the transmittance towards end_bottom is
+    // `transmittance - spread`, towards end_top `transmittance + spread`. Zero for lines, which end one pixel wide.
+    pub spread: f32,
 }
 impl<L: Radiance> Fluence<L> {
     pub fn map<R: Radiance>(self, f: impl FnOnce(L) -> R) -> Fluence<R> {
-        Fluence { transmittance: self.transmittance, radiance: f(self.radiance) }
+        Fluence { transmittance: self.transmittance, radiance: f(self.radiance), spread: self.spread }
     }
     pub fn reproject(self, source: Frustum, target: Frustum) -> Self {
         self.map(|radiance| radiance.reproject(source, target))
@@ -23,12 +28,19 @@ impl<L: Radiance> Fluence<L> {
     pub fn resample<R: ResampleRadiance<L>>(self, source: Frustum, target: Frustum) -> Fluence<R> {
         self.map(|radiance| R::resample(radiance, source, target))
     }
+    pub fn new(transmittance: f32, radiance: L) -> Self {
+        Fluence { transmittance, radiance, spread: 0.0 }
+    }
+    // (towards end_bottom, towards end_top)
+    pub fn end_transmittances(&self) -> (f32, f32) {
+        (self.transmittance - self.spread, self.transmittance + self.spread)
+    }
     // Assume that both have the same focal point.
     pub fn over(&self, other: Fluence<L>) -> Self {
-        Fluence {
-            transmittance: self.transmittance * other.transmittance,
-            radiance: self.radiance + other.radiance * self.transmittance,
-        }
+        Fluence::new(self.transmittance * other.transmittance, self.radiance + other.radiance * self.transmittance)
+    }
+    pub fn average(&self, other: Fluence<L>) -> Self {
+        Fluence::new((self.transmittance + other.transmittance) * 0.5, (self.radiance + other.radiance) * 0.5)
     }
     pub fn join(values: impl IntoIterator<Item = Self>) -> Self {
         let mut count = 0;
@@ -39,7 +51,7 @@ impl<L: Radiance> Fluence<L> {
             total_transmittance += fluence.transmittance;
             total_radiance = total_radiance + fluence.radiance;
         }
-        Fluence { transmittance: total_transmittance / count as f32, radiance: total_radiance }
+        Fluence::new(total_transmittance / count as f32, total_radiance)
     }
     pub fn join_weighted(values: impl IntoIterator<Item = (Self, f32)>) -> Self {
         let mut total_weight = 0.0;
@@ -50,7 +62,7 @@ impl<L: Radiance> Fluence<L> {
             total_transmittance += fluence.transmittance * weight;
             total_radiance = total_radiance + fluence.radiance;
         }
-        Fluence { transmittance: total_transmittance / total_weight, radiance: total_radiance }
+        Fluence::new(total_transmittance / total_weight, total_radiance)
     }
 }
 
@@ -129,70 +141,78 @@ impl ExtensionType for ConeExtension {
     }
 }
 impl ConeExtension {
-    fn end_top(&self) -> IVec2 {
-        self.end_bottom + IVec2::Y
-    }
-    fn parity(&self) -> bool {
-        (self.index() >= 0) == (self.index() % 2 == 0)
-    }
     fn delta(&self) -> IVec2 {
         self.end_bottom - self.start
     }
-    fn extend_lines(&self) -> [LineExtension; 3] {
-        let half_delta = self.delta() / 2;
-        [
-            LineExtension { start: self.start, end: self.start + half_delta },
-            LineExtension { start: self.end_bottom - half_delta, end: self.end_bottom },
-            LineExtension { start: self.end_top() - half_delta, end: self.end_top() },
-        ]
+}
+
+fn line(start: IVec2, delta: IVec2) -> Extension {
+    Extension::Line(LineExtension { start, end: start + delta })
+}
+fn cone(start: IVec2, delta: IVec2) -> Extension {
+    Extension::Cone(ConeExtension { start, end_bottom: start + delta })
+}
+
+// How an extension of size 2s is put together from extensions of size s.
+struct Halves {
+    start: IVec2,
+    // The halves meet at the middle column in the two pixels start + lo and start + hi.
+    lo: IVec2,
+    hi: IVec2,
+    // whether the extension's delta is 2 * lo, so that its lower edge passes through start + lo exactly
+    even: bool,
+}
+impl Halves {
+    fn new(extension: Extension) -> Self {
+        let (start, delta) = match extension {
+            Extension::Line(line) => (line.start, line.delta()),
+            Extension::Cone(cone) => (cone.start, cone.delta()),
+        };
+        let lo = IVec2::new(delta.x / 2, delta.y.div_euclid(2));
+        Halves { start, lo, hi: lo + IVec2::Y, even: delta.y.rem_euclid(2) == 0 }
     }
-    fn extend_cones(&self) -> [ConeExtension; 2] {
-        let half_delta = self.delta() / 2;
-        [
-            ConeExtension { start: self.start, end_bottom: self.start + half_delta },
-            ConeExtension { start: self.end_bottom - half_delta, end_bottom: self.end_bottom },
-        ]
-    }
-    fn extend(&self) -> Vec<Extension> {
-        if self.parity() {
-            self.extend_lines().into_iter().map(Extension::Line).collect()
-        } else {
-            self.extend_cones().into_iter().map(Extension::Cone).collect()
-        }
+    // For a cone: at the middle it covers one pixel fully and half of the other. Returns (the offset of the full one,
+    // of the half one, the half delta of its straight edge, which runs through the full one). Even: the straight edge
+    // is the lower one; odd: mirrored.
+    fn cone_middle(&self) -> (IVec2, IVec2, IVec2) {
+        if self.even { (self.lo, self.hi, self.lo) } else { (self.hi, self.lo, self.hi) }
     }
 }
 
+// Adds the share of each pixel that the extension covers, times weight: the weights `get_extension` gives the pixels'
+// emission when nothing is occluded.
 pub fn draw_extension(extension: Extension, weight: f32, pixels: &mut HashMap<IVec2, f32>) {
     if extension.size() == 1 {
-        *pixels.entry(extension.start()).or_default() += weight;
+        let start = extension.start();
+        let side = start + if extension.index() >= 0 { IVec2::Y } else { -IVec2::Y };
+        let (start_weight, side_weight) = match extension {
+            Extension::Cone(_) => (1.0, 0.5),
+            Extension::Line(line) if line.index() != 0 => (0.5, 0.5),
+            Extension::Line(_) => (1.0, 0.0),
+        };
+        *pixels.entry(start).or_default() += weight * start_weight;
+        if side_weight != 0.0 {
+            *pixels.entry(side).or_default() += weight * side_weight;
+        }
         return;
     }
-    if let Extension::Cone(ext) = extension
-        && ext.size() == 2
-    {
-        if extension.index() == 1 {
-            draw_extension(
-                Extension::Line(LineExtension { start: ext.start + IVec2::Y, end: ext.end_bottom + IVec2::Y }),
-                weight * 0.5,
-                pixels,
-            );
-        } else if extension.index() == -2 {
-            draw_extension(
-                Extension::Line(LineExtension { start: ext.start - IVec2::Y, end: ext.end_bottom - IVec2::Y }),
-                weight * 0.5,
-                pixels,
-            );
-        }
-    }
+    let halves = Halves::new(extension);
+    let Halves { start, lo, hi, even } = halves;
     match extension {
-        Extension::Line(ext) => {
-            for line_ext in ext.extend() {
-                draw_extension(Extension::Line(line_ext), weight, pixels);
+        Extension::Line(_) if even => {
+            draw_extension(line(start, lo), weight, pixels);
+            draw_extension(line(start + lo, lo), weight, pixels);
+        }
+        Extension::Line(_) => {
+            for (first, second) in [(lo, hi), (hi, lo)] {
+                draw_extension(line(start, first), weight * 0.5, pixels);
+                draw_extension(line(start + first, second), weight * 0.5, pixels);
             }
         }
-        Extension::Cone(ext) => {
-            for ext in ext.extend() {
-                draw_extension(ext, weight, pixels);
+        Extension::Cone(_) => {
+            let (full, half, edge) = halves.cone_middle();
+            for piece in [line(start, edge * 2), cone(start, lo), cone(start + full, lo), line(start + half, edge)] {
+                draw_extension(piece, weight * 0.5, pixels);
             }
         }
     }
@@ -218,12 +238,9 @@ pub fn get_extension<L: Radiance>(
     if extension.size() <= 0 {
         panic!("Extension size must be positive: {:?}", extension);
     }
-    if let Some(cached) = cache.get(&extension) {
-        return *cached;
-    }
-
     let f = extension.as_frustum();
     // figure out edge cases later.
+    // Size 1 is read straight from the scene and never cached, so looking it up would only cost time.
     if extension.size() == 1 {
         // the light seen through a pixel's faces, given the share of the extension's width that crosses the pixel
         let pixel_fluence = |pixel: IVec2, weight: f32| {
@@ -234,7 +251,7 @@ pub fn get_extension<L: Radiance>(
             }*/
 
             if let Some(_value) = pixel_scene.get(&pixel) {
-                Fluence { transmittance: 0.0, radiance: L::default() }
+                Fluence::new(0.0, L::default())
             } else {
                 // pixels are always seen on two sides by probes; so give half radiance for both sides.
                 // could do something more complex, but may not be necessary.
@@ -242,9 +259,9 @@ pub fn get_extension<L: Radiance>(
                 let next_pixel_emittance = pixel_scene.get(&next_pixel).copied().unwrap_or(0.0);
                 let side_pixel = pixel + view_dir as i32 * IVec2::Y;
                 let side_pixel_emittance = pixel_scene.get(&side_pixel).copied().unwrap_or(0.0);
-                Fluence {
-                    transmittance: 1.0,
-                    radiance: (L::new_directional(f, pixel.as_vec2() + 0.5 + Vec2::X * 0.5, ViewDir::Right)
+                Fluence::new(
+                    1.0,
+                    (L::new_directional(f, pixel.as_vec2() + 0.5 + Vec2::X * 0.5, ViewDir::Right)
                         * next_pixel_emittance
                         * 0.5
                         + L::new_directional(
@@ -254,15 +271,23 @@ pub fn get_extension<L: Radiance>(
                         ) * side_pixel_emittance
                             * 0.5)
                         * weight,
-                }
+                )
             }
         };
         return match extension {
             Extension::Cone(cone) => {
-                let side = cone.start + if cone.index() >= 0 { IVec2::Y } else { -IVec2::Y };
-                Fluence::join_weighted(
-                    [(cone.start, 1.0), (side, 0.5)].map(|(pixel, weight)| (pixel_fluence(pixel, weight), weight)),
-                )
+                // The cone crosses its start pixel and half of the pixel beside it. The rays that leave through the
+                // far side of the start pixel only cross the start; the rays that leave beside it cross both.
+                let up = cone.index() >= 0;
+                let side = cone.start + if up { IVec2::Y } else { -IVec2::Y };
+                let (start, side) = (pixel_fluence(cone.start, 1.0), pixel_fluence(side, 0.5));
+                let (near, far) = (start.transmittance, start.transmittance * side.transmittance);
+                let (bottom, top) = if up { (near, far) } else { (far, near) };
+                Fluence {
+                    transmittance: (bottom + top) * 0.5,
+                    radiance: start.radiance + side.radiance,
+                    spread: (top - bottom) * 0.5,
+                }
             }
             // A diagonal line covers half of its start and half of the pixel it moves into, but every ray crosses both,
             // so either one blocks it. Treating it as its start alone misses the half of the next pixel that lies on
@@ -275,21 +300,63 @@ pub fn get_extension<L: Radiance>(
         };
     }
 
+    if let Some(cached) = cache.get(&extension) {
+        return *cached;
+    }
+
     let mut get_fluence_reproj =
         |ext: Extension| get_extension(cache, ext, pixel_scene, view_dir).reproject(ext.as_frustum(), f);
 
+    // An extension of size 2s is put together from extensions of size s (see `Halves`). Every piece is weighted by the
+    // share of the extension's width it stands for, so occlusion and emission are spread over the extension's real
+    // footprint instead of being sampled along a single digital line, which makes a shadow edge snap by up to a pixel,
+    // differently for neighbouring probes.
+    let halves = Halves::new(extension);
+    let Halves { start, lo, hi, even } = halves;
     let result = match extension {
-        Extension::Line(line) => {
-            let [first, second] = line.extend().map(|ext| get_fluence_reproj(ext.into()));
-            first.over(second)
+        Extension::Line(_) if even => {
+            get_fluence_reproj(line(start, lo)).over(get_fluence_reproj(line(start + lo, lo)))
         }
-        Extension::Cone(cone) => {
-            if cone.parity() {
-                let [first, second1, second2] = cone.extend_lines().map(|ext| get_fluence_reproj(ext.into()));
-                first.over(Fluence::join([second1, second2]))
-            } else {
-                let [first, second] = cone.extend_cones().map(|ext| get_fluence_reproj(ext.into()));
-                first.over(second)
+        // the line passes between the two middle pixels: half of it goes through the lower one, half through the upper
+        Extension::Line(_) => {
+            let below = get_fluence_reproj(line(start, lo)).over(get_fluence_reproj(line(start + lo, hi)));
+            let above = get_fluence_reproj(line(start, hi)).over(get_fluence_reproj(line(start + hi, lo)));
+            below.average(above)
+        }
+        // The cone is 1 -> 1.5 pixels wide over its first half: the mean of the line along its straight edge and the
+        // half-size cone. Over the second half, 1.5 -> 2 wide, a line and a cone continue from the full middle pixel
+        // (half weight each) and a line of half weight continues from the half one.
+        // Each piece is attenuated only by the piece it continues: the second line by the first (together they are
+        // the whole line along the straight edge), the second cone by the first cone towards the full pixel, and the
+        // narrow line by the first cone towards the half pixel. Attenuating by a mean over pieces instead would let
+        // something that blocks one piece dim pieces that pass beside it.
+        Extension::Cone(_) => {
+            let (full, half, edge) = halves.cone_middle();
+            let edge_line = get_fluence_reproj(line(start, edge * 2));
+            let first_cone = get_fluence_reproj(cone(start, lo));
+            let second_cone = get_fluence_reproj(cone(start + full, lo));
+            let narrow = get_fluence_reproj(line(start + half, edge));
+
+            // the end transmittances of a half-size cone, as (towards the pixel on the straight edge, the other one)
+            let ends = |cone: Fluence<L>| {
+                let (bottom, top) = cone.end_transmittances();
+                if even { (bottom, top) } else { (top, bottom) }
+            };
+            let (to_full, to_half) = ends(first_cone);
+            let (second_edge, second_other) = ends(second_cone);
+            // the end pixel on the straight edge is reached by the edge line and the second cone, the other one by the
+            // second cone and the narrow line
+            let end_edge = (edge_line.transmittance + to_full * second_edge) * 0.5;
+            let end_other = (to_full * second_other + to_half * narrow.transmittance) * 0.5;
+            let (bottom, top) = if even { (end_edge, end_other) } else { (end_other, end_edge) };
+            Fluence {
+                transmittance: (bottom + top) * 0.5,
+                radiance: (edge_line.radiance
+                    + first_cone.radiance
+                    + second_cone.radiance * to_full
+                    + narrow.radiance * to_half)
+                    * 0.5,
+                spread: (top - bottom) * 0.5,
             }
         }
     };
