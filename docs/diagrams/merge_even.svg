@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="834" height="486" viewBox="0 0 834 486" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+<rect width="834" height="486" fill="#ffffff"/>
+<text xml:space="preserve" x="16.0" y="24.0" font-size="13" text-anchor="start" fill="#1b1b1b" font-weight="600" stroke="#ffffff" stroke-width="3" paint-order="stroke">Even merge (focus.x / size is even), size s = 2, index i = 1</text>
+<line x1="16.0" y1="372.0" x2="16.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="50.0" y1="372.0" x2="50.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="84.0" y1="372.0" x2="84.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="118.0" y1="372.0" x2="118.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="152.0" y1="372.0" x2="152.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="186.0" y1="372.0" x2="186.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="220.0" y1="372.0" x2="220.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="254.0" y1="372.0" x2="254.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="288.0" y1="372.0" x2="288.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="322.0" y1="372.0" x2="322.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="356.0" y1="372.0" x2="356.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="16.0" y1="372.0" x2="356.0" y2="372.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="16.0" y1="338.0" x2="356.0" y2="338.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="16.0" y1="304.0" x2="356.0" y2="304.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="16.0" y1="270.0" x2="356.0" y2="270.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="16.0" y1="236.0" x2="356.0" y2="236.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="16.0" y1="202.0" x2="356.0" y2="202.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="16.0" y1="168.0" x2="356.0" y2="168.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="16.0" y1="134.0" x2="356.0" y2="134.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="16.0" y1="100.0" x2="356.0" y2="100.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="16.0" y1="66.0" x2="356.0" y2="66.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="16.0" y1="32.0" x2="356.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<polygon points="16.0,338.0 84.0,304.0 84.0,270.0 16.0,338.0" fill="#777777" fill-opacity="0.15" stroke="none" stroke-width="1.6" stroke-linejoin="round"/>
+<line x1="16.0" y1="338.0" x2="315.2" y2="188.4" stroke="#777777" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="5 4"/>
+<line x1="16.0" y1="338.0" x2="315.2" y2="38.8" stroke="#777777" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="5 4"/>
+<circle cx="16.0" cy="338.0" r="4" fill="#1b1b1b"/>
+<polygon points="152.0,270.0 288.0,202.0 288.0,134.0 152.0,236.0" fill="#2e9b57" fill-opacity="0.3" stroke="#2e9b57" stroke-width="1.6" stroke-linejoin="round"/>
+<text xml:space="preserve" x="294.8" y="172.0" font-size="11.5" text-anchor="start" fill="#2e9b57" stroke="#ffffff" stroke-width="3" paint-order="stroke">far 2i</text>
+<polygon points="152.0,236.0 288.0,134.0 288.0,66.0 152.0,202.0" fill="#8455c7" fill-opacity="0.3" stroke="#8455c7" stroke-width="1.6" stroke-linejoin="round"/>
+<text xml:space="preserve" x="294.8" y="104.0" font-size="11.5" text-anchor="start" fill="#8455c7" stroke="#ffffff" stroke-width="3" paint-order="stroke">far 2i+1</text>
+<polygon points="84.0,304.0 152.0,270.0 152.0,202.0 84.0,270.0" fill="#2f6fbe" fill-opacity="0.4" stroke="#2f6fbe" stroke-width="1.6" stroke-linejoin="round"/>
+<polygon points="84.0,304.0 118.0,304.0 118.0,270.0 84.0,270.0" fill="none" fill-opacity="0" stroke="#1b1b1b" stroke-width="1.6" stroke-linejoin="round"/>
+<text xml:space="preserve" x="101.0" y="291.0" font-size="11.5" text-anchor="middle" fill="#1b1b1b" stroke="#ffffff" stroke-width="3" paint-order="stroke">start</text>
+<polygon points="152.0,270.0 186.0,270.0 186.0,236.0 152.0,236.0" fill="none" fill-opacity="0" stroke="#1b1b1b" stroke-width="1.6" stroke-linejoin="round"/>
+<text xml:space="preserve" x="169.0" y="257.0" font-size="11.5" text-anchor="middle" fill="#1b1b1b" stroke="#ffffff" stroke-width="3" paint-order="stroke">eb</text>
+<polygon points="152.0,236.0 186.0,236.0 186.0,202.0 152.0,202.0" fill="none" fill-opacity="0" stroke="#1b1b1b" stroke-width="1.6" stroke-linejoin="round"/>
+<text xml:space="preserve" x="169.0" y="223.0" font-size="11.5" text-anchor="middle" fill="#1b1b1b" stroke="#ffffff" stroke-width="3" paint-order="stroke">et</text>
+<text xml:space="preserve" x="26.2" y="357.3" font-size="11.5" text-anchor="start" fill="#1b1b1b" stroke="#ffffff" stroke-width="3" paint-order="stroke">focus F</text>
+<text xml:space="preserve" x="111.2" y="221.3" font-size="11.5" text-anchor="end" fill="#2f6fbe" stroke="#ffffff" stroke-width="3" paint-order="stroke">near</text>
+<text xml:space="preserve" x="16.0" y="396.0" font-size="12.5" text-anchor="start" fill="#1b1b1b" stroke="#ffffff" stroke-width="3" paint-order="stroke">near = cone extension from start = F + (s, i) to end_bottom = start + (s, i): the cone's second s columns.</text>
+<text xml:space="preserve" x="16.0" y="414.0" font-size="12.5" text-anchor="start" fill="#1b1b1b" stroke="#ffffff" stroke-width="3" paint-order="stroke">The two far cones have the same focus and size 2s; they take over at the near extension's two end pixels (eb, et):</text>
+<text xml:space="preserve" x="16.0" y="432.0" font-size="12.5" text-anchor="start" fill="#1b1b1b" stroke="#ffffff" stroke-width="3" paint-order="stroke">  L = L(near) + T(near → eb) · L(far 2i) + T(near → et) · L(far 2i+1)</text>
+<text xml:space="preserve" x="16.0" y="450.0" font-size="12.5" text-anchor="start" fill="#1b1b1b" stroke="#ffffff" stroke-width="3" paint-order="stroke">Grey: the cone's first s columns, which it never reads: its extensions start s columns ahead of the focus</text>
+<text xml:space="preserve" x="16.0" y="468.0" font-size="12.5" text-anchor="start" fill="#1b1b1b" stroke="#ffffff" stroke-width="3" paint-order="stroke">(for the size-1 cones of a probe, that is the probe's own pixel, read by probe_pixel).</text>
+</svg>

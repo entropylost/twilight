@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1019" height="324" viewBox="0 0 1019 324" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+<rect width="1019" height="324" fill="#ffffff"/>
+<text xml:space="preserve" x="16.0" y="24.0" font-size="13" text-anchor="start" fill="#1b1b1b" font-weight="600" stroke="#ffffff" stroke-width="3" paint-order="stroke">Line, index 0</text>
+<line x1="16.0" y1="170.0" x2="16.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="62.0" y1="170.0" x2="62.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="108.0" y1="170.0" x2="108.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="154.0" y1="170.0" x2="154.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="200.0" y1="170.0" x2="200.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="16.0" y1="170.0" x2="200.0" y2="170.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="16.0" y1="124.0" x2="200.0" y2="124.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="16.0" y1="78.0" x2="200.0" y2="78.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="16.0" y1="32.0" x2="200.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<polygon points="62.0,124.0 108.0,124.0 108.0,78.0 62.0,78.0" fill="#2f6fbe" fill-opacity="0.3" stroke="#2f6fbe" stroke-width="1.6" stroke-linejoin="round"/>
+<polygon points="62.0,124.0 108.0,124.0 108.0,78.0 62.0,78.0" fill="none" fill-opacity="0" stroke="#1b1b1b" stroke-width="1.6" stroke-linejoin="round"/>
+<text xml:space="preserve" x="85.0" y="105.0" font-size="11.5" text-anchor="middle" fill="#1b1b1b" stroke="#ffffff" stroke-width="3" paint-order="stroke">start</text>
+<polygon points="62.0,78.0 108.0,78.0 108.0,32.0 62.0,32.0" fill="none" fill-opacity="0" stroke="#1b1b1b" stroke-width="1.6" stroke-linejoin="round"/>
+<text xml:space="preserve" x="85.0" y="59.0" font-size="11.5" text-anchor="middle" fill="#1b1b1b" stroke="#ffffff" stroke-width="3" paint-order="stroke">side</text>
+<line x1="62.0" y1="124.0" x2="62.0" y2="78.0" stroke="#d0342c" stroke-width="4" stroke-linecap="round"/>
+<line x1="62.0" y1="78.0" x2="108.0" y2="78.0" stroke="#e07b00" stroke-width="4" stroke-linecap="round"/>
+<text xml:space="preserve" x="16.0" y="194.0" font-size="12.5" text-anchor="start" fill="#1b1b1b" stroke="#ffffff" stroke-width="3" paint-order="stroke">crosses the start pixel only</text>
+<text xml:space="preserve" x="16.0" y="212.0" font-size="12.5" text-anchor="start" fill="#1b1b1b" stroke="#ffffff" stroke-width="3" paint-order="stroke">T = 1 (the side pixel only emits)</text>
+<text xml:space="preserve" x="248.0" y="24.0" font-size="13" text-anchor="start" fill="#1b1b1b" font-weight="600" stroke="#ffffff" stroke-width="3" paint-order="stroke">Line, index 1 (diagonal)</text>
+<line x1="248.0" y1="170.0" x2="248.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="294.0" y1="170.0" x2="294.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="340.0" y1="170.0" x2="340.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="386.0" y1="170.0" x2="386.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="432.0" y1="170.0" x2="432.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="248.0" y1="170.0" x2="432.0" y2="170.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="248.0" y1="124.0" x2="432.0" y2="124.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="248.0" y1="78.0" x2="432.0" y2="78.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="248.0" y1="32.0" x2="432.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<polygon points="294.0,124.0 340.0,78.0 340.0,32.0 294.0,78.0" fill="#2f6fbe" fill-opacity="0.3" stroke="#2f6fbe" stroke-width="1.6" stroke-linejoin="round"/>
+<polygon points="294.0,124.0 340.0,124.0 340.0,78.0 294.0,78.0" fill="none" fill-opacity="0" stroke="#1b1b1b" stroke-width="1.6" stroke-linejoin="round"/>
+<text xml:space="preserve" x="317.0" y="105.0" font-size="11.5" text-anchor="middle" fill="#1b1b1b" stroke="#ffffff" stroke-width="3" paint-order="stroke">start</text>
+<polygon points="294.0,78.0 340.0,78.0 340.0,32.0 294.0,32.0" fill="none" fill-opacity="0" stroke="#1b1b1b" stroke-width="1.6" stroke-linejoin="round"/>
+<text xml:space="preserve" x="317.0" y="59.0" font-size="11.5" text-anchor="middle" fill="#1b1b1b" stroke="#ffffff" stroke-width="3" paint-order="stroke">side</text>
+<line x1="294.0" y1="124.0" x2="294.0" y2="78.0" stroke="#d0342c" stroke-width="4" stroke-linecap="round"/>
+<line x1="294.0" y1="78.0" x2="340.0" y2="78.0" stroke="#e07b00" stroke-width="4" stroke-linecap="round"/>
+<text xml:space="preserve" x="248.0" y="194.0" font-size="12.5" text-anchor="start" fill="#1b1b1b" stroke="#ffffff" stroke-width="3" paint-order="stroke">every ray crosses both pixels</text>
+<text xml:space="preserve" x="248.0" y="212.0" font-size="12.5" text-anchor="start" fill="#1b1b1b" stroke="#ffffff" stroke-width="3" paint-order="stroke">T = 0 if the side pixel is solid</text>
+<text xml:space="preserve" x="480.0" y="24.0" font-size="13" text-anchor="start" fill="#1b1b1b" font-weight="600" stroke="#ffffff" stroke-width="3" paint-order="stroke">Cone, index 0 (view up)</text>
+<line x1="480.0" y1="170.0" x2="480.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="526.0" y1="170.0" x2="526.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="572.0" y1="170.0" x2="572.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="618.0" y1="170.0" x2="618.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="664.0" y1="170.0" x2="664.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="480.0" y1="170.0" x2="664.0" y2="170.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="480.0" y1="124.0" x2="664.0" y2="124.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="480.0" y1="78.0" x2="664.0" y2="78.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="480.0" y1="32.0" x2="664.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<polygon points="526.0,124.0 572.0,124.0 572.0,32.0 526.0,78.0" fill="#2f6fbe" fill-opacity="0.3" stroke="#2f6fbe" stroke-width="1.6" stroke-linejoin="round"/>
+<polygon points="526.0,124.0 572.0,124.0 572.0,78.0 526.0,78.0" fill="none" fill-opacity="0" stroke="#1b1b1b" stroke-width="1.6" stroke-linejoin="round"/>
+<text xml:space="preserve" x="549.0" y="105.0" font-size="11.5" text-anchor="middle" fill="#1b1b1b" stroke="#ffffff" stroke-width="3" paint-order="stroke">start</text>
+<polygon points="526.0,78.0 572.0,78.0 572.0,32.0 526.0,32.0" fill="none" fill-opacity="0" stroke="#1b1b1b" stroke-width="1.6" stroke-linejoin="round"/>
+<text xml:space="preserve" x="549.0" y="59.0" font-size="11.5" text-anchor="middle" fill="#1b1b1b" stroke="#ffffff" stroke-width="3" paint-order="stroke">side</text>
+<line x1="526.0" y1="124.0" x2="526.0" y2="78.0" stroke="#d0342c" stroke-width="4" stroke-linecap="round"/>
+<line x1="526.0" y1="78.0" x2="572.0" y2="78.0" stroke="#e07b00" stroke-width="4" stroke-linecap="round"/>
+<text xml:space="preserve" x="575.7" y="105.0" font-size="11.5" text-anchor="start" fill="#2f6fbe" stroke="#ffffff" stroke-width="3" paint-order="stroke">end_bottom</text>
+<text xml:space="preserve" x="575.7" y="59.0" font-size="11.5" text-anchor="start" fill="#2f6fbe" stroke="#ffffff" stroke-width="3" paint-order="stroke">end_top</text>
+<text xml:space="preserve" x="480.0" y="194.0" font-size="12.5" text-anchor="start" fill="#1b1b1b" stroke="#ffffff" stroke-width="3" paint-order="stroke">T towards end_bottom = 1</text>
+<text xml:space="preserve" x="480.0" y="212.0" font-size="12.5" text-anchor="start" fill="#1b1b1b" stroke="#ffffff" stroke-width="3" paint-order="stroke">T towards end_top = 0 if side is solid</text>
+<text xml:space="preserve" x="712.0" y="24.0" font-size="13" text-anchor="start" fill="#1b1b1b" font-weight="600" stroke="#ffffff" stroke-width="3" paint-order="stroke">Cone, index -1 (view down)</text>
+<line x1="712.0" y1="170.0" x2="712.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="758.0" y1="170.0" x2="758.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="804.0" y1="170.0" x2="804.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="850.0" y1="170.0" x2="850.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="896.0" y1="170.0" x2="896.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="712.0" y1="170.0" x2="896.0" y2="170.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="712.0" y1="124.0" x2="896.0" y2="124.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="712.0" y1="78.0" x2="896.0" y2="78.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<line x1="712.0" y1="32.0" x2="896.0" y2="32.0" stroke="#d4d4d4" stroke-width="1" stroke-linecap="round"/>
+<polygon points="758.0,124.0 804.0,170.0 804.0,78.0 758.0,78.0" fill="#2f6fbe" fill-opacity="0.3" stroke="#2f6fbe" stroke-width="1.6" stroke-linejoin="round"/>
+<polygon points="758.0,124.0 804.0,124.0 804.0,78.0 758.0,78.0" fill="none" fill-opacity="0" stroke="#1b1b1b" stroke-width="1.6" stroke-linejoin="round"/>
+<text xml:space="preserve" x="781.0" y="105.0" font-size="11.5" text-anchor="middle" fill="#1b1b1b" stroke="#ffffff" stroke-width="3" paint-order="stroke">start</text>
+<polygon points="758.0,170.0 804.0,170.0 804.0,124.0 758.0,124.0" fill="none" fill-opacity="0" stroke="#1b1b1b" stroke-width="1.6" stroke-linejoin="round"/>
+<text xml:space="preserve" x="781.0" y="151.0" font-size="11.5" text-anchor="middle" fill="#1b1b1b" stroke="#ffffff" stroke-width="3" paint-order="stroke">side</text>
+<line x1="758.0" y1="124.0" x2="758.0" y2="78.0" stroke="#d0342c" stroke-width="4" stroke-linecap="round"/>
+<line x1="758.0" y1="124.0" x2="804.0" y2="124.0" stroke="#e07b00" stroke-width="4" stroke-linecap="round"/>
+<text xml:space="preserve" x="807.7" y="151.0" font-size="11.5" text-anchor="start" fill="#2f6fbe" stroke="#ffffff" stroke-width="3" paint-order="stroke">end_bottom</text>
+<text xml:space="preserve" x="807.7" y="105.0" font-size="11.5" text-anchor="start" fill="#2f6fbe" stroke="#ffffff" stroke-width="3" paint-order="stroke">end_top</text>
+<text xml:space="preserve" x="712.0" y="194.0" font-size="12.5" text-anchor="start" fill="#1b1b1b" stroke="#ffffff" stroke-width="3" paint-order="stroke">T towards end_top = 1</text>
+<text xml:space="preserve" x="712.0" y="212.0" font-size="12.5" text-anchor="start" fill="#1b1b1b" stroke="#ffffff" stroke-width="3" paint-order="stroke">T towards end_bottom = 0 if side is solid</text>
+<text xml:space="preserve" x="16.0" y="252.0" font-size="12.5" text-anchor="start" fill="#1b1b1b" stroke="#ffffff" stroke-width="3" paint-order="stroke">Size 1 is read from the scene (never cached). The rays of a piece are those that arrive at the start pixel's near face (red).</text>
+<text xml:space="preserve" x="16.0" y="270.0" font-size="12.5" text-anchor="start" fill="#1b1b1b" stroke="#ffffff" stroke-width="3" paint-order="stroke">Start solid: the piece sees that face, emission × ½, T = 0, nothing else is read.</text>
+<text xml:space="preserve" x="16.0" y="288.0" font-size="12.5" text-anchor="start" fill="#1b1b1b" stroke="#ffffff" stroke-width="3" paint-order="stroke">Start empty, side solid: the piece sees the side pixel's face towards the start (orange), emission × ½, and T is as written above.</text>
+<text xml:space="preserve" x="16.0" y="306.0" font-size="12.5" text-anchor="start" fill="#1b1b1b" stroke="#ffffff" stroke-width="3" paint-order="stroke">Both empty: no emission, T = 1. The side pixel is start + (0, 1) for view up (cone index ≥ 0) and start − (0, 1) for view down.</text>
+</svg>
